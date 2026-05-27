@@ -15,15 +15,13 @@ Este taller intensivo está diseñado para fortalecer la arquitectura y el rendi
 
 Cada uno de estos laboratorios está diseñado para ofrecerte una experiencia práctica. Haz clic en los enlaces para comenzar.
 
-### Capítulo 1
+### [Practica 1. Optimización de la Capa Semántica: Reducción de Deuda Técnica y Memoria](Capitulo01/README.md#optimización-de-la-capa-semántica-reducción-de-deuda-técnica-y-memoria)
 
-- [Practica 1. Optimización de la Capa Semántica: Reducción de Deuda Técnica y Memoria](Capitulo01/README.md#optimización-de-la-capa-semántica-reducción-de-deuda-técnica-y-memoria)
   - Descripción: Diseñar modelos optimizados para memoria y velocidad mediante la comprensión profunda del motor de almacenamiento.
   - Duración estimada: 90 min
 
-### Capítulo 2
+### [Practica 2. Escalabilidad de Lógica de Negocio: Implementación de Grupos de Cálculo](Capitulo02/README.md#escalabilidad-de-lógica-de-negocio-implementación-de-grupos-de-cálculo)
 
-- [Practica 2. Escalabilidad de Lógica de Negocio: Implementación de Grupos de Cálculo](Capitulo02/README.md#escalabilidad-de-lógica-de-negocio-implementación-de-grupos-de-cálculo)
   - Descripción: Profesionalizar la lógica analítica para reducir la redundancia de código y facilitar el mantenimiento masivo de métricas.
   - Duración estimada: 120 min
 
@@ -39,9 +37,8 @@ Cada uno de estos laboratorios está diseñado para ofrecerte una experiencia pr
   - Descripción: Implementar un flujo de trabajo profesional que asegure la integridad de los datos desde el desarrollo hasta la producción.
   - Duración estimada: 75 min
 
-### Capítulo 5
+### [Practica 5. Productividad Asistida por IA: Documentación Técnica y Generación de Insights](Capitulo05/README.md#productividad-asistida-por-ia-documentación-técnica-y-generación-de-insights)
 
-- [Practica 5. Productividad Asistida por IA: Documentación Técnica y Generación de Insights](Capitulo05/README.md#productividad-asistida-por-ia-documentación-técnica-y-generación-de-insights)
   - Descripción: Utilizar la IA generativa para acelerar los tiempos de desarrollo y asegurar la documentación del conocimiento técnico.
   - Duración estimada: 75 min
 
