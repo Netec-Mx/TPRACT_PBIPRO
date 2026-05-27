@@ -1,3 +1,6 @@
+<img src="images/neteclogo (2).png" alt="logo" width="300"/>
+
+
 # Ingeniería de Datos en Power BI Pro
 
 Entrenamiento técnico avanzado enfocado en arquitectura semántica, optimización DAX, performance, DevOps e IA aplicada para entornos Power BI Enterprise.
