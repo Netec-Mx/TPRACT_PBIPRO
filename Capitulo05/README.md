@@ -1,1262 +1,652 @@
 # Productividad Asistida por IA: Documentación Técnica y Generación de Insights
 
-## Metadatos
+## 1. Metadatos
 
-| Campo | Detalle |
+| Atributo | Valor |
 |---|---|
-| **Duración estimada** | 74 minutos |
+| **Duración** | 75 minutos |
 | **Complejidad** | Media |
-| **Nivel Bloom** | Crear |
-| **Módulo** | 5 — Productividad Asistida por IA |
-| **Laboratorio previo requerido** | Lab 04 (modelo semántico desplegado en Power BI Service) |
-| **Archivo de inicio** | `AdventureWorks_Lab04_Final.pbix` + `AdventureWorks_Lab04_Final.bim` |
+| **Nivel Bloom** | Crear / Evaluar |
+| **Módulo** | Módulo 5 — IA Aplicada & Documentación Técnica |
+| **Herramientas** | Power BI Desktop, DAX Query View, Smart Narrative, Python, Markdown |
+| **Archivo inicial** | `Lab04_VentasRetail_Gobierno_DevOps.pbix` (salida de Cap04) |
+| **Archivo final esperado** | `Lab05_VentasRetail_IA_Documentacion.pbix` + documentación técnica |
 
 ---
 
-## Descripción General
+## 2. Descripción General
 
-En este laboratorio integrarás tres dimensiones de IA aplicada al desarrollo Power BI: uso de **Copilot en Power BI Service** para generar narrativas e insights asistidos, **automatización de documentación técnica** del modelo semántico mediante Python y el archivo `.bim`, y **asistencia DAX con LLMs** para generar, revisar y refactorizar expresiones complejas. Trabajarás con el modelo semántico construido en los laboratorios anteriores (Adventure Works extendido) y producirás artefactos concretos: un documento Markdown con el diccionario de datos, un catálogo de medidas explicadas y un catálogo de prompts validados para uso futuro.
-
-El principio rector del laboratorio es que **la IA resume y acelera, pero no sustituye la validación humana**. Cada output generado por IA será verificado contra los datos reales del modelo antes de considerarse válido.
+En este laboratorio cerrarás el ciclo del taller produciendo **documentación técnica y narrativas verificables** a partir del modelo construido en los capítulos anteriores. El objetivo es que puedas generar artefactos de documentación que faciliten el mantenimiento, la evolución y la comprensión del modelo por parte de otros usuarios o desarrolladores, sin perder el control técnico ni arriesgar datos sensibles al usar IA.
 
 ---
 
-## Objetivos de Aprendizaje
+## 3. Objetivos de Aprendizaje
 
-Al finalizar este laboratorio, serás capaz de:
+Al finalizar este laboratorio serás capaz de:
 
-- [ ] Activar y utilizar el panel de Copilot en Power BI Service para generar narrativas automáticas y evaluar críticamente su precisión frente a los datos del modelo.
-- [ ] Ejecutar un script Python que parsea el archivo `.bim` exportado y genera automáticamente documentación técnica en formato Markdown (diccionario de datos, catálogo de medidas).
-- [ ] Enriquecer la documentación generada realizando llamadas a la API de un LLM para producir descripciones en lenguaje natural de expresiones DAX complejas.
-- [ ] Aplicar técnicas de prompt engineering específicas para DAX, validar las sugerencias recibidas con DAX Studio y documentar un catálogo de prompts efectivos reutilizables.
+- Usar DAX Query View o DAX Studio para validar medidas antes de incorporarlas al modelo.
+- Generar un diccionario técnico de tablas, columnas, relaciones y medidas desde PBIP.
+- Documentar medidas DAX con propósito, dependencias, granularidad y riesgos de interpretación.
+- Crear una narrativa técnica con Smart Narrative y valores dinámicos.
+- Usar IA generativa de forma segura, sin exponer datos sensibles.
+- Construir un catálogo de prompts reutilizable.
 
 ---
 
-## Prerrequisitos
+## 4. Insumos del laboratorio
 
-### Conocimientos previos
-
-- Comprensión del modelo semántico Adventure Works desarrollado en Labs 1–4.
-- Familiaridad básica con Python (lectura de JSON, llamadas HTTP/API).
-- Conocimiento de expresiones DAX de nivel intermedio (contexto de filtro, CALCULATE, funciones de inteligencia de tiempo).
-- Haber completado el Lab 04 o disponer del archivo de solución `AdventureWorks_Lab04_Final.pbix` publicado en Power BI Service.
-
-### Acceso y licencias
-
-| Recurso | Requisito |
+| Insumo | Detalle |
 |---|---|
-| Power BI Service | Licencia **Pro** o **Premium Per User (PPU)** |
-| Copilot en Power BI | Capacidad **Fabric F64+** o tenant con Copilot habilitado por el administrador |
-| OpenAI API | Clave de API válida (GPT-3.5-turbo o superior) **o** acceso a Azure OpenAI **o** Ollama local con Llama 3/Mistral |
-| Tabular Editor 2 (TE2) | Versión gratuita 2.x — suficiente para este laboratorio |
-| Python 3.10+ | Con librerías `pandas`, `openai`, `json` instaladas |
-
-> **⚠️ Nota importante:** Si Copilot no está disponible en tu tenant, el instructor proporcionará una grabación de demostración para la Parte A. Las Partes B y C no requieren Copilot y pueden completarse de forma independiente.
+| **Entrada** | `Lab04_VentasRetail_Gobierno_DevOps.pbix` (salida de Cap04) |
+| **Herramientas** | Power BI Desktop, DAX Query View, Smart Narrative, **Python 3.10+**, VS Code |
+| **Script** | `Capitulo05/scripts/documentar_modelo.py` (incluido en el paquete) |
+| **Opcional** | Copilot en Power BI (según tenant y capacidad) |
+| **Salida** | `Lab05_VentasRetail_IA_Documentacion.pbix` + `DATA_DICTIONARY.md`, `AI_VALIDATION_LOG.md`, `PROMPTS_DAX.md` |
 
 ---
 
-## Entorno de Laboratorio
+## 5. Contrato de continuidad del modelo
 
-### Hardware recomendado
+El archivo de inicio debe ser el resultado del Capítulo 04 y contener:
 
-| Componente | Mínimo | Recomendado |
-|---|---|---|
-| RAM | 16 GB | 32 GB |
-| Procesador | Intel i5 8ª gen / Ryzen 5 | Intel i7/i9 o Ryzen 7 |
-| Almacenamiento libre | 50 GB SSD | 100 GB SSD |
-| Pantalla | 1920×1080 | Dual monitor o 2K/4K |
-| Conectividad | 10 Mbps | 25 Mbps+ |
+| Objeto | Validación esperada |
+|---|---|
+| Modelo base | `FactVentas`, `DimFecha`, `DimProducto`, `DimCliente`, `DimGeografia`, `DimCanal`, `DimPromocion`, `_Medidas`. |
+| Escenarios | `FactPresupuesto`, `FactForecast`, medidas `[Ventas Budget]`, `[Ventas Forecast]`, `[Ventas Budget vs Actual %]`. |
+| Calculation Groups | `Inteligencia de Tiempo` y `Escenarios de Análisis`. |
+| Performance | Medidas de diagnóstico y `FactVentas_Agg`. |
+| Gobierno | `pRutaDatos`, rol `RLS Region Dinamica`, publicación en servicio si el entorno lo permitió. |
 
-### Software requerido
+Usa siempre los **nombres canónicos** (no cambies mayúsculas, espacios ni acentos). La referencia completa está en [`../MODELO_DATOS.md`](../MODELO_DATOS.md).
 
-| Herramienta | Versión | Propósito en este lab |
-|---|---|---|
-| Power BI Desktop | Junio 2024+ | Verificación local de medidas |
-| Power BI Service | Siempre actualizado | Copilot, publicación |
-| Python | 3.10+ | Automatización de documentación |
-| Visual Studio Code | 1.85+ | Edición de scripts y Markdown |
-| DAX Studio | 3.1.x+ | Validación de expresiones DAX |
-| Tabular Editor 2 | 2.x | Exportación del archivo .bim |
-| Navegador web | Edge/Chrome 120+ | Acceso a Power BI Service |
-
-### Configuración inicial del entorno
-
-**Paso 1 — Verificar instalación de Python y librerías:**
-
-```bash
-python --version
-# Debe mostrar Python 3.10.x o superior
-
-pip install openai pandas
-# Si ya están instaladas, actualizarlas:
-pip install --upgrade openai pandas
-```
-
-**Paso 2 — Crear la carpeta de trabajo del laboratorio:**
-
-```bash
-mkdir C:\LabAI
-mkdir C:\LabAI\docs
-mkdir C:\LabAI\scripts
-mkdir C:\LabAI\prompts
-```
-
-**Paso 3 — Verificar acceso a la API de LLM (elegir una opción):**
-
-*Opción A — OpenAI API:*
-```bash
-# Establecer la variable de entorno con tu API key
-setx OPENAI_API_KEY "sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-# Verificar (abrir nueva terminal):
-echo %OPENAI_API_KEY%
-```
-
-*Opción B — Ollama local (sin costo):*
-```bash
-# Descargar e instalar Ollama desde https://ollama.ai
-ollama pull llama3
-ollama serve
-# El servidor queda disponible en http://localhost:11434
-```
-
-**Paso 4 — Exportar el archivo `.bim` desde Tabular Editor 2:**
-
-1. Abrir Tabular Editor 2.
-2. Ir a **File → Open → From Power BI Desktop** y seleccionar `AdventureWorks_Lab04_Final.pbix` (Power BI Desktop debe estar abierto con ese archivo).
-3. En el menú **File → Save As**, seleccionar formato **Model.bim** y guardar en `C:\LabAI\AdventureWorks.bim`.
-
-> **✅ Verificación:** El archivo `AdventureWorks.bim` debe tener un tamaño mayor a 50 KB y ser legible como JSON válido en VS Code.
+> `FactPresupuesto` y `FactForecast` tienen granularidad mensual. No valides Budget/Forecast por producto, cliente o región, salvo que documentes explícitamente la limitación.
 
 ---
 
-## Pasos del Laboratorio
+## 6. Escenario del laboratorio
+
+El modelo está optimizado, gobernado y publicado, pero falta lo que lo hace mantenible por otros: documentación técnica viva, narrativas que cualquiera pueda leer, y un proceso para usar IA sin arriesgar datos.
 
 ---
 
-### Parte A — Copilot en Power BI Service: Narrativas e Insights Asistidos
-
-**Duración estimada: 20 minutos**
+## 7. Instrucciones Paso a Paso
 
 ---
 
-#### Paso A.1 — Activar Copilot y explorar el panel
+### Paso 0 — Preparar el archivo de inicio
 
-**Objetivo:** Verificar que Copilot está disponible en el workspace y familiarizarse con su interfaz antes de generar contenido.
+**Objetivo:** crear la copia de trabajo y la carpeta del capítulo.
 
-**Instrucciones:**
+1. Crea `C:\LabPowerBI\Lab05\`.
+2. Copia `C:\LabPowerBI\Lab04\Lab04_VentasRetail_Gobierno_DevOps.pbix` a `C:\LabPowerBI\Lab05\`.
+3. Renómbralo como `Lab05_VentasRetail_IA_Documentacion`.
+4. Crea una página `05 - Narrativa Tecnica`.
+6. Copia el script `Capitulo05\scripts\documentar_modelo.py` de la guía de laboratorios a `C:\LabPowerBI\Lab05\scripts\`.
 
-1. Abrir el navegador y navegar a `https://app.powerbi.com`.
-2. Seleccionar el **Workspace** habilitado para Copilot (el instructor indicará el nombre específico; generalmente contiene "Lab05" o "Copilot-Enabled").
-3. Abrir el reporte `AdventureWorks_Lab04_Final` publicado en ese workspace.
-4. En la cinta superior del reporte, hacer clic en el ícono de **Copilot** (ícono de chispa/estrella). Si no aparece, verificar con el instructor que el workspace tiene capacidad habilitada.
-5. Observar el panel lateral de Copilot que se despliega a la derecha. Identificar:
-   - El campo de entrada de texto (prompt).
-   - Las sugerencias de acciones rápidas.
-   - El historial de conversación.
+#### Resultado Esperado
 
-**Salida esperada:** Panel de Copilot visible y activo con el mensaje de bienvenida de Fabric Copilot.
-
-**Verificación:** El panel muestra opciones como "Summarize this page", "Suggest a visual" o similares en inglés/español según la configuración del tenant.
+- `Lab05_VentasRetail_IA_Documentacion.pbix` existe.
+- `Lab05_VentasRetail_IA_Documentacion.pbix` está abierto, con la página creada y el script disponible.
 
 ---
 
-#### Paso A.2 — Generar una narrativa automática de página
+### Paso 1 — Validar el modelo con DAX Query View
 
-**Objetivo:** Usar Copilot para producir un resumen ejecutivo de la página principal del reporte y evaluar su precisión.
+**Objetivo:** comprobar el modelo heredado separando validaciones por granularidad.
 
-**Instrucciones:**
+> No mezcles Budget/Forecast con producto, cliente o región en estas validaciones. Budget y Forecast están a grano mensual.
 
-1. Navegar a la página **"Resumen Ejecutivo"** del reporte (o la página principal con KPIs de ventas).
-2. En el panel de Copilot, escribir el siguiente prompt:
+#### Validación A — Ventas reales por categoría
 
-   ```
-   Resume las tendencias de Ventas Totales y Margen Bruto del último trimestre disponible, 
-   destacando las regiones con mayor crecimiento y cualquier anomalía relevante. 
-   Usa solo los datos visibles en esta página.
-   ```
+1. Abre **DAX Query View** y crea una consulta nueva.
+2. Ejecuta:
 
-3. Presionar **Enter** y esperar la respuesta (10–30 segundos).
-4. Leer la narrativa generada con atención crítica.
-5. Abrir una hoja de cálculo Excel en blanco o el bloc de notas y registrar:
-   - **Dato 1 de la narrativa:** (copiarlo textualmente)
-   - **Valor real en el reporte:** (leerlo directamente de la visualización)
-   - **¿Coincide?** Sí / No / Parcialmente
-6. Repetir la verificación para al menos **3 afirmaciones numéricas** de la narrativa.
-
-**Salida esperada:** Una narrativa de 3–5 párrafos con cifras específicas de ventas, márgenes y variaciones regionales.
-
-**Verificación:** Completar la tabla de validación con mínimo 3 filas. Al menos 2 de las 3 afirmaciones deben ser verificables directamente en el reporte. Documentar cualquier discrepancia encontrada.
-
-> **💡 Reflexión crítica:** Las discrepancias pueden ocurrir por contextos de filtro que Copilot no interpreta correctamente, por redondeos, o por inferencias incorrectas. Esto es esperado y parte del aprendizaje.
-
----
-
-#### Paso A.3 — Crear una visualización asistida por lenguaje natural
-
-**Objetivo:** Usar Copilot para agregar una nueva visualización al reporte mediante descripción en lenguaje natural.
-
-**Instrucciones:**
-
-1. En el panel de Copilot, escribir:
-
-   ```
-   Crea un gráfico de líneas que muestre la evolución mensual de Ventas YoY % 
-   por categoría de producto para los últimos 12 meses.
-   ```
-
-2. Copilot propondrá una visualización. Hacer clic en **"Add to report"** o **"Agregar al reporte"** si la propuesta es apropiada.
-3. Si la visualización no usa las medidas correctas (por ejemplo, usa una columna en lugar de la medida `[Ventas YoY %]`), documentar el problema en tu bitácora.
-4. Ajustar manualmente la visualización si es necesario para que use la medida DAX correcta.
-5. Guardar el reporte.
-
-**Salida esperada:** Una nueva visualización en el reporte canvas, posiblemente con ajustes manuales aplicados.
-
-**Verificación:** La visualización muestra datos coherentes con los valores de la medida `[Ventas YoY %]` verificados en DAX Studio o en otras visualizaciones del reporte.
-
----
-
-#### Paso A.4 — Documentar hallazgos de Copilot
-
-**Objetivo:** Consolidar una evaluación crítica estructurada de las capacidades y limitaciones de Copilot observadas.
-
-**Instrucciones:**
-
-1. Crear el archivo `C:\LabAI\docs\evaluacion_copilot.md` en VS Code.
-2. Usar la siguiente plantilla y completarla con tus observaciones reales:
-
-```markdown
-# Evaluación de Copilot en Power BI Service
-**Fecha:** YYYY-MM-DD
-**Reporte:** AdventureWorks_Lab04_Final
-**Workspace:** [nombre del workspace]
-
-## Narrativa Generada — Validación
-
-| Afirmación de Copilot | Valor en reporte | ¿Preciso? | Observación |
-|---|---|---|---|
-| [copiar texto] | [valor real] | Sí/No/Parcial | [nota] |
-| [copiar texto] | [valor real] | Sí/No/Parcial | [nota] |
-| [copiar texto] | [valor real] | Sí/No/Parcial | [nota] |
-
-## Visualización Asistida
-
-- **Prompt usado:** [texto del prompt]
-- **Resultado inicial:** [descripción de lo que Copilot propuso]
-- **Ajustes manuales requeridos:** [descripción]
-- **Evaluación:** [útil / requiere mucho ajuste / no apto para producción]
-
-## Casos de Uso de Alto Valor Identificados
-
-1. [caso de uso donde Copilot fue útil]
-2. [otro caso de uso]
-
-## Limitaciones Identificadas
-
-1. [limitación observada]
-2. [otra limitación]
-
-## Criterios de Validación Recomendados
-
-- Siempre verificar afirmaciones numéricas contra la fuente de datos.
-- [agregar criterio propio]
-```
-
-3. Guardar el archivo.
-
-**Salida esperada:** Archivo `evaluacion_copilot.md` completo con datos reales del laboratorio.
-
-**Verificación:** El archivo existe en `C:\LabAI\docs\` y contiene al menos 3 filas en la tabla de validación con valores reales (no placeholders).
-
----
-
-### Parte B — Automatización de Documentación Técnica con Python
-
-**Duración estimada: 28 minutos**
-
----
-
-#### Paso B.1 — Explorar la estructura del archivo `.bim`
-
-**Objetivo:** Comprender la estructura JSON del archivo `.bim` para identificar los elementos que se documentarán.
-
-**Instrucciones:**
-
-1. Abrir VS Code y abrir el archivo `C:\LabAI\AdventureWorks.bim`.
-2. Usar `Ctrl+Shift+P` → "Format Document" para formatear el JSON.
-3. Explorar la estructura y localizar los siguientes elementos (usar `Ctrl+F` para buscar):
-   - `"tables"` — lista de tablas del modelo.
-   - `"measures"` — dentro de cada tabla, las medidas DAX.
-   - `"columns"` — columnas de cada tabla.
-   - `"relationships"` — relaciones entre tablas.
-   - `"calculationGroups"` — grupos de cálculo (si existen del Lab 2).
-4. Anotar la ruta JSON de las medidas: `model.tables[n].measures[m].expression`.
-
-**Salida esperada:** Comprensión de la jerarquía JSON: `model → tables → [measures, columns, relationships]`.
-
-**Verificación:** Puedes identificar al menos 5 medidas DAX en el archivo `.bim` con sus expresiones completas.
-
----
-
-#### Paso B.2 — Crear el script de extracción de metadatos
-
-**Objetivo:** Desarrollar un script Python que parsea el `.bim` y genera un documento Markdown con el diccionario de datos completo.
-
-**Instrucciones:**
-
-1. Crear el archivo `C:\LabAI\scripts\generar_documentacion.py` en VS Code.
-2. Copiar y completar el siguiente script:
-
-```python
-#!/usr/bin/env python3
-"""
-Script: generar_documentacion.py
-Propósito: Parsear archivo .bim de Power BI y generar documentación Markdown
-Lab: 05-00-01 - Productividad Asistida por IA
-"""
-
-import json
-import os
-from datetime import datetime
-
-# ── Configuración ──────────────────────────────────────────────────────────────
-BIM_FILE = r"C:\LabAI\AdventureWorks.bim"
-OUTPUT_DIR = r"C:\LabAI\docs"
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "diccionario_datos.md")
-
-# ── Carga del archivo .bim ─────────────────────────────────────────────────────
-def cargar_bim(ruta: str) -> dict:
-    with open(ruta, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-# ── Generadores de secciones Markdown ─────────────────────────────────────────
-def generar_encabezado(nombre_modelo: str) -> str:
-    fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
-    return f"""# Diccionario de Datos — {nombre_modelo}
-
-> **Generado automáticamente:** {fecha}  
-> **Fuente:** Archivo .bim exportado desde Tabular Editor 2  
-> **Advertencia:** Revisar y validar antes de publicar en repositorio oficial.
-
----
-
-"""
-
-def generar_seccion_tablas(tablas: list) -> str:
-    sb = ["## Tablas del Modelo\n\n"]
-    sb.append("| Tabla | Tipo | N.° Columnas | N.° Medidas | Descripción |\n")
-    sb.append("|---|---|---|---|---|\n")
-    for tabla in tablas:
-        nombre = tabla.get("name", "N/A")
-        tipo = "Calculation Group" if tabla.get("calculationGroup") else "Regular"
-        n_cols = len(tabla.get("columns", []))
-        n_meds = len(tabla.get("measures", []))
-        desc = tabla.get("description", "*(sin descripción)*")
-        sb.append(f"| {nombre} | {tipo} | {n_cols} | {n_meds} | {desc} |\n")
-    sb.append("\n")
-    return "".join(sb)
-
-def generar_seccion_columnas(tablas: list) -> str:
-    sb = ["## Columnas por Tabla\n\n"]
-    for tabla in tablas:
-        nombre_tabla = tabla.get("name", "N/A")
-        columnas = tabla.get("columns", [])
-        if not columnas:
-            continue
-        sb.append(f"### Tabla: {nombre_tabla}\n\n")
-        sb.append("| Columna | Tipo de Dato | Formato | Oculta | Descripción |\n")
-        sb.append("|---|---|---|---|---|\n")
-        for col in columnas:
-            # Omitir columnas de tipo RowNumber (internas)
-            if col.get("type") == "rowNumber":
-                continue
-            col_nombre = col.get("name", "N/A")
-            col_tipo = col.get("dataType", "N/A")
-            col_formato = col.get("formatString", "")
-            col_oculta = "Sí" if col.get("isHidden", False) else "No"
-            col_desc = col.get("description", "*(sin descripción)*")
-            sb.append(f"| {col_nombre} | {col_tipo} | {col_formato} | {col_oculta} | {col_desc} |\n")
-        sb.append("\n")
-    return "".join(sb)
-
-def generar_seccion_medidas(tablas: list) -> str:
-    sb = ["## Catálogo de Medidas DAX\n\n"]
-    total_medidas = 0
-    for tabla in tablas:
-        nombre_tabla = tabla.get("name", "N/A")
-        medidas = tabla.get("measures", [])
-        if not medidas:
-            continue
-        sb.append(f"### Tabla: {nombre_tabla}\n\n")
-        for medida in medidas:
-            total_medidas += 1
-            m_nombre = medida.get("name", "N/A")
-            m_expr = medida.get("expression", "N/A")
-            m_formato = medida.get("formatString", "")
-            m_carpeta = medida.get("displayFolder", "")
-            m_desc = medida.get("description", "*(sin descripción — pendiente de documentar)*")
-            m_oculta = "Sí" if medida.get("isHidden", False) else "No"
-            sb.append(f"#### {m_nombre}\n\n")
-            sb.append(f"- **Tabla:** {nombre_tabla}\n")
-            sb.append(f"- **Carpeta de exhibición:** {m_carpeta if m_carpeta else '*(raíz)*'}\n")
-            sb.append(f"- **Formato:** {m_formato if m_formato else '*(predeterminado)*'}\n")
-            sb.append(f"- **Oculta:** {m_oculta}\n")
-            sb.append(f"- **Descripción:** {m_desc}\n\n")
-            sb.append("```DAX\n")
-            sb.append(m_expr.strip() if isinstance(m_expr, str) else str(m_expr))
-            sb.append("\n```\n\n")
-            sb.append("---\n\n")
-    sb.insert(1, f"> **Total de medidas documentadas:** {total_medidas}\n\n")
-    return "".join(sb)
-
-def generar_seccion_relaciones(relaciones: list) -> str:
-    sb = ["## Relaciones del Modelo\n\n"]
-    sb.append("| # | Tabla Origen | Columna Origen | Tabla Destino | Columna Destino | Cardinalidad | Activa |\n")
-    sb.append("|---|---|---|---|---|---|---|\n")
-    for i, rel in enumerate(relaciones, 1):
-        origen_tabla = rel.get("fromTable", "N/A")
-        origen_col = rel.get("fromColumn", "N/A")
-        destino_tabla = rel.get("toTable", "N/A")
-        destino_col = rel.get("toColumn", "N/A")
-        cardinalidad = rel.get("fromCardinality", "many") + "→" + rel.get("toCardinality", "one")
-        activa = "Sí" if rel.get("isActive", True) else "No"
-        sb.append(f"| {i} | {origen_tabla} | {origen_col} | {destino_tabla} | {destino_col} | {cardinalidad} | {activa} |\n")
-    sb.append("\n")
-    return "".join(sb)
-
-# ── Función principal ──────────────────────────────────────────────────────────
-def main():
-    print(f"[INFO] Cargando archivo .bim: {BIM_FILE}")
-    bim = cargar_bim(BIM_FILE)
-    
-    # Navegar a la estructura del modelo
-    modelo = bim.get("model", bim)  # Algunos .bim tienen nivel "model", otros no
-    nombre_modelo = bim.get("name", "AdventureWorks")
-    tablas = modelo.get("tables", [])
-    relaciones = modelo.get("relationships", [])
-    
-    print(f"[INFO] Tablas encontradas: {len(tablas)}")
-    print(f"[INFO] Relaciones encontradas: {len(relaciones)}")
-    
-    # Generar documento Markdown
-    contenido = []
-    contenido.append(generar_encabezado(nombre_modelo))
-    contenido.append(generar_seccion_tablas(tablas))
-    contenido.append(generar_seccion_relaciones(relaciones))
-    contenido.append(generar_seccion_columnas(tablas))
-    contenido.append(generar_seccion_medidas(tablas))
-    
-    documento = "".join(contenido)
-    
-    # Guardar el documento
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(documento)
-    
-    print(f"[OK] Documentación generada: {OUTPUT_FILE}")
-    print(f"[INFO] Tamaño del documento: {len(documento):,} caracteres")
-
-if __name__ == "__main__":
-    main()
-```
-
-3. Guardar el archivo.
-4. Ejecutar el script desde la terminal:
-
-```bash
-cd C:\LabAI\scripts
-python generar_documentacion.py
-```
-
-**Salida esperada:**
-```
-[INFO] Cargando archivo .bim: C:\LabAI\AdventureWorks.bim
-[INFO] Tablas encontradas: 8
-[INFO] Relaciones encontradas: 7
-[OK] Documentación generada: C:\LabAI\docs\diccionario_datos.md
-[INFO] Tamaño del documento: 45,230 caracteres
-```
-*(Los números variarán según el modelo real)*
-
-**Verificación:** Abrir `C:\LabAI\docs\diccionario_datos.md` en VS Code y confirmar que:
-- La sección "Tablas del Modelo" lista todas las tablas del modelo.
-- Al menos una medida DAX aparece con su expresión completa en bloque de código.
-- La sección de relaciones tiene al menos 5 filas.
-
----
-
-#### Paso B.3 — Enriquecer la documentación con descripciones generadas por LLM
-
-**Objetivo:** Extender el script para llamar a la API de un LLM y generar descripciones en lenguaje natural de las medidas DAX más complejas.
-
-**Instrucciones:**
-
-1. Crear el archivo `C:\LabAI\scripts\enriquecer_medidas.py`:
-
-```python
-#!/usr/bin/env python3
-"""
-Script: enriquecer_medidas.py
-Propósito: Usar LLM para generar descripciones en lenguaje natural de medidas DAX
-Lab: 05-00-01 - Productividad Asistida por IA
-"""
-
-import json
-import os
-import time
-
-# ── Configuración ──────────────────────────────────────────────────────────────
-BIM_FILE = r"C:\LabAI\AdventureWorks.bim"
-OUTPUT_FILE = r"C:\LabAI\docs\catalogo_medidas_enriquecido.md"
-GLOSARIO_FILE = r"C:\LabAI\docs\glosario_negocio.txt"
-
-# Configuración del LLM — elegir una opción:
-# Opción A: OpenAI API
-USE_OPENAI = True  # Cambiar a False para usar Ollama
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-OPENAI_MODEL = "gpt-3.5-turbo"
-
-# Opción B: Ollama local
-OLLAMA_BASE_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3"
-
-# Controles de costo y velocidad
-MAX_MEDIDAS_A_PROCESAR = 10   # Limitar para el laboratorio (evitar costos excesivos)
-DELAY_ENTRE_LLAMADAS = 1      # Segundos entre llamadas a la API
-
-# ── Glosario de negocio (contexto para el LLM) ────────────────────────────────
-GLOSARIO_DEFAULT = """
-Glosario del modelo Adventure Works:
-- Ventas: Total de ingresos netos por ventas de productos, después de descuentos.
-- Margen Bruto: Diferencia entre Ventas y Costo de Ventas.
-- Calendario: Tabla de fechas marcada como tabla de fechas en el modelo.
-- Producto: Tabla de dimensión con jerarquía Categoría > Subcategoría > Producto.
-- Cliente: Tabla de dimensión con información demográfica y geográfica.
-- YoY: Year over Year — comparación interanual.
-- MTD/QTD/YTD: Month/Quarter/Year To Date — acumulados de período.
-- [Ventas]: Medida base que suma el campo SalesAmount de la tabla FactSales.
-"""
-
-# ── Función de llamada al LLM ──────────────────────────────────────────────────
-def llamar_llm(prompt: str) -> str:
-    """Llama al LLM configurado y retorna la respuesta como string."""
-    if USE_OPENAI:
-        return llamar_openai(prompt)
-    else:
-        return llamar_ollama(prompt)
-
-def llamar_openai(prompt: str) -> str:
-    """Llama a la API de OpenAI."""
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY)
-        response = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Eres un experto en Power BI y DAX. Tu tarea es explicar "
-                        "expresiones DAX en lenguaje claro para analistas de negocio. "
-                        "Usa SOLO el glosario y contexto proporcionado. "
-                        "No inventes KPIs ni supuestos que no estén en el prompt. "
-                        "Si falta información, indícalo explícitamente."
-                    )
-                },
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=300,
-            temperature=0.2  # Baja temperatura para respuestas más deterministas
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"[ERROR en llamada OpenAI: {e}]"
-
-def llamar_ollama(prompt: str) -> str:
-    """Llama a Ollama local."""
-    import urllib.request
-    payload = json.dumps({
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": False
-    }).encode("utf-8")
-    try:
-        req = urllib.request.Request(
-            OLLAMA_BASE_URL,
-            data=payload,
-            headers={"Content-Type": "application/json"}
-        )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            resultado = json.loads(resp.read().decode("utf-8"))
-            return resultado.get("response", "[Sin respuesta]").strip()
-    except Exception as e:
-        return f"[ERROR en llamada Ollama: {e}]"
-
-# ── Construcción del prompt para una medida ───────────────────────────────────
-def construir_prompt(nombre: str, expresion: str, glosario: str) -> str:
-    return f"""Glosario del modelo:
-{glosario}
-
-Medida DAX a explicar:
-Nombre: {nombre}
-Expresión:
-```DAX
-{expresion}
-```
-
-Tarea: Explica en 2-3 frases qué calcula esta medida, qué contexto de filtro utiliza 
-y cuándo sería útil para un analista de negocio.
-
-Formato de respuesta requerido:
-- **Descripción:** [explicación en lenguaje natural]
-- **Contexto de filtro:** [cómo interactúa con filtros/segmentadores]
-- **Caso de uso:** [cuándo usar esta medida]
-
-Restricciones: No cambies nombres técnicos. No inventes supuestos fuera del glosario."""
-
-# ── Función principal ──────────────────────────────────────────────────────────
-def main():
-    # Cargar glosario
-    if os.path.exists(GLOSARIO_FILE):
-        with open(GLOSARIO_FILE, "r", encoding="utf-8") as f:
-            glosario = f.read()
-        print(f"[INFO] Glosario cargado desde: {GLOSARIO_FILE}")
-    else:
-        glosario = GLOSARIO_DEFAULT
-        print("[INFO] Usando glosario predeterminado del script")
-    
-    # Cargar .bim
-    with open(BIM_FILE, "r", encoding="utf-8") as f:
-        bim = json.load(f)
-    
-    modelo = bim.get("model", bim)
-    tablas = modelo.get("tables", [])
-    
-    # Recopilar todas las medidas
-    todas_medidas = []
-    for tabla in tablas:
-        for medida in tabla.get("measures", []):
-            todas_medidas.append({
-                "tabla": tabla.get("name", "N/A"),
-                "nombre": medida.get("name", "N/A"),
-                "expresion": medida.get("expression", ""),
-                "carpeta": medida.get("displayFolder", ""),
-            })
-    
-    print(f"[INFO] Total de medidas en el modelo: {len(todas_medidas)}")
-    
-    # Seleccionar medidas más complejas (criterio: longitud de expresión)
-    medidas_complejas = sorted(
-        [m for m in todas_medidas if len(m.get("expresion", "")) > 50],
-        key=lambda x: len(x.get("expresion", "")),
-        reverse=True
-    )[:MAX_MEDIDAS_A_PROCESAR]
-    
-    print(f"[INFO] Procesando las {len(medidas_complejas)} medidas más complejas...")
-    
-    # Generar documento enriquecido
-    lineas = [
-        "# Catálogo de Medidas DAX — Descripciones Generadas por IA\n\n",
-        "> **Nota:** Las descripciones fueron generadas por un LLM. ",
-        "Deben ser revisadas por un desarrollador Power BI antes de publicarse.\n\n",
-        f"> **Modelo LLM usado:** {'OpenAI ' + OPENAI_MODEL if USE_OPENAI else 'Ollama ' + OLLAMA_MODEL}\n\n",
-        "---\n\n"
-    ]
-    
-    for i, medida in enumerate(medidas_complejas, 1):
-        print(f"[{i}/{len(medidas_complejas)}] Procesando: {medida['nombre']}...")
-        
-        prompt = construir_prompt(medida["nombre"], medida["expresion"], glosario)
-        descripcion_ia = llamar_llm(prompt)
-        
-        lineas.append(f"## {medida['nombre']}\n\n")
-        lineas.append(f"- **Tabla:** {medida['tabla']}\n")
-        lineas.append(f"- **Carpeta:** {medida['carpeta'] if medida['carpeta'] else '*(raíz)*'}\n\n")
-        lineas.append("### Expresión DAX\n\n")
-        lineas.append("```DAX\n")
-        lineas.append(medida["expresion"].strip())
-        lineas.append("\n```\n\n")
-        lineas.append("### Descripción Generada por IA\n\n")
-        lineas.append(descripcion_ia)
-        lineas.append("\n\n")
-        lineas.append("### Validación\n\n")
-        lineas.append("- [ ] Revisado por desarrollador DAX\n")
-        lineas.append("- [ ] Validado contra datos reales en DAX Studio\n")
-        lineas.append("- [ ] Aprobado para publicación\n\n")
-        lineas.append("---\n\n")
-        
-        # Pausa entre llamadas para respetar rate limits
-        if i < len(medidas_complejas):
-            time.sleep(DELAY_ENTRE_LLAMADAS)
-    
-    # Guardar documento
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.writelines(lineas)
-    
-    print(f"\n[OK] Catálogo enriquecido generado: {OUTPUT_FILE}")
-    print(f"[INFO] Medidas procesadas: {len(medidas_complejas)}")
-    print(f"[AVISO] Revisar y validar todas las descripciones antes de publicar.")
-
-if __name__ == "__main__":
-    main()
-```
-
-2. Guardar el archivo.
-3. Ejecutar el script:
-
-```bash
-python C:\LabAI\scripts\enriquecer_medidas.py
-```
-
-4. Monitorear la salida en consola. Cada medida procesada mostrará su número de progreso.
-
-**Salida esperada:**
-```
-[INFO] Usando glosario predeterminado del script
-[INFO] Total de medidas en el modelo: 24
-[INFO] Procesando las 10 medidas más complejas...
-[1/10] Procesando: Ventas YoY %...
-[2/10] Procesando: Margen Bruto Acumulado YTD...
-...
-[OK] Catálogo enriquecido generado: C:\LabAI\docs\catalogo_medidas_enriquecido.md
-[INFO] Medidas procesadas: 10
-[AVISO] Revisar y validar todas las descripciones antes de publicar.
-```
-
-**Verificación:** Abrir `catalogo_medidas_enriquecido.md` en VS Code y confirmar que:
-- Cada medida tiene una sección "Descripción Generada por IA" con contenido real (no errores).
-- El formato de respuesta del LLM incluye los tres campos: Descripción, Contexto de filtro, Caso de uso.
-- Las casillas de validación `[ ]` están presentes y sin marcar (pendientes de revisión humana).
-
----
-
-#### Paso B.4 — Validar una descripción generada con DAX Studio
-
-**Objetivo:** Establecer el flujo de validación humana comprobando que la descripción de IA para la medida `Ventas YoY %` es semánticamente correcta.
-
-**Instrucciones:**
-
-1. Abrir DAX Studio y conectarlo al modelo (Power BI Desktop abierto con `AdventureWorks_Lab04_Final.pbix`).
-2. Ejecutar la siguiente consulta DAX para obtener valores de referencia:
-
-```DAX
+```dax
 EVALUATE
 SUMMARIZECOLUMNS(
-    'Calendario'[Año],
-    'Calendario'[NombreMes],
-    "Ventas_Actual", [Ventas],
-    "Ventas_YoY_Pct", [Ventas YoY %]
+    DimFecha[Year],
+    DimProducto[Category],
+    "Ventas", [Ventas],
+    "Margen %", [Margen %]
 )
-ORDER BY 'Calendario'[Año] DESC, 'Calendario'[NombreMes]
+ORDER BY DimFecha[Year], DimProducto[Category]
 ```
+>[!NOTE]
+> Esta consulta valida que las medidas de ventas reales funcionan por año y categoría, sin mezclar presupuesto.
 
-3. Revisar los resultados y confirmar que:
-   - `Ventas_YoY_Pct` es `NULL` para el primer año del dataset (no hay año anterior).
-   - Los valores son porcentajes decimales (p. ej., 0.12 = 12%).
-   - El cálculo es coherente con la descripción generada por el LLM.
+3. Verifica que devuelve filas por año y categoría.
 
-4. Abrir `catalogo_medidas_enriquecido.md` y localizar la entrada de `Ventas YoY %`.
-5. En la sección "Validación", marcar las casillas según corresponda:
-   - `[x] Revisado por desarrollador DAX` — si la descripción es correcta.
-   - `[x] Validado contra datos reales en DAX Studio` — después de ejecutar la consulta.
-6. Si la descripción del LLM es incorrecta o incompleta, agregar una nota de corrección debajo de la descripción.
+#### Validación B — Budget y Forecast por fecha
 
-**Salida esperada:** Consulta DAX ejecutada con resultados numéricos, y al menos una entrada en el catálogo con las casillas de validación marcadas.
+Ejecuta una segunda consulta:
 
-**Verificación:** El archivo `catalogo_medidas_enriquecido.md` tiene al menos una medida con `[x]` en las casillas de revisión y validación.
-
----
-
-### Parte C — Asistencia DAX con IA y Catálogo de Prompts
-
-**Duración estimada: 26 minutos**
-
----
-
-#### Paso C.1 — Practicar prompt engineering para generación de DAX
-
-**Objetivo:** Aprender a construir prompts efectivos para solicitar medidas DAX a un LLM, incluyendo el contexto del modelo necesario para obtener respuestas correctas.
-
-**Instrucciones:**
-
-1. Abrir el navegador y acceder a la interfaz del LLM que estés usando (ChatGPT, Azure OpenAI Playground, o la interfaz web de Ollama si aplica).
-2. **Experimento 1 — Prompt sin contexto (ejemplo de lo que NO hacer):**
-   
-   Enviar este prompt y observar la respuesta:
-   ```
-   Escribe una medida DAX para calcular las ventas del trimestre anterior.
-   ```
-   
-   Anotar en tu bitácora: ¿La respuesta es genérica? ¿Usa nombres de tablas/columnas que no existen en tu modelo?
-
-3. **Experimento 2 — Prompt con contexto estructurado (template correcto):**
-
-   Enviar este prompt completo:
-   ```
-   ## Contexto del modelo Power BI
-   
-   Modelo: Adventure Works (ventas retail)
-   
-   Tablas relevantes:
-   - FactSales: columnas SalesAmount (decimal), OrderDate (date), ProductKey (int), CustomerKey (int)
-   - Calendario: tabla de fechas marcada, columnas Fecha (date), Año (int), Trimestre (int), Mes (int)
-   - Producto: ProductKey (int), NombreProducto (text), Categoría (text), Subcategoría (text)
-   
-   Medidas existentes:
-   - [Ventas] = SUMX(FactSales, FactSales[SalesAmount])
-   
-   Relaciones:
-   - FactSales[OrderDate] → Calendario[Fecha] (muchos a uno, activa)
-   - FactSales[ProductKey] → Producto[ProductKey] (muchos a uno, activa)
-   
-   ## Tarea
-   
-   Crea una medida DAX llamada "Ventas Trimestre Anterior" que calcule el total de ventas 
-   del trimestre calendario inmediatamente anterior al período seleccionado en el reporte.
-   
-   ## Restricciones
-   - Usa solo las tablas y columnas descritas arriba.
-   - No uses funciones obsoletas de DAX.
-   - Si necesitas una función de inteligencia de tiempo, úsala correctamente con la tabla de fechas marcada.
-   - Agrega comentarios en el DAX para explicar cada paso.
-   
-   ## Formato de respuesta
-   1. Expresión DAX completa con comentarios.
-   2. Explicación de 2-3 frases de cómo funciona.
-   3. Advertencias o supuestos que debo verificar.
-   ```
-
-4. Copiar la medida DAX generada por el LLM.
-
-**Salida esperada:** Una expresión DAX estructurada, probablemente usando `CALCULATE`, `PREVIOUSQUARTER` o `DATEADD` con referencia correcta a la tabla `Calendario`.
-
-**Verificación:** La expresión generada referencia la tabla `Calendario` (no `Date` u otro nombre genérico) y usa `[Ventas]` como medida base.
-
----
-
-#### Paso C.2 — Validar la medida generada en DAX Studio
-
-**Objetivo:** Establecer el flujo de validación obligatorio para cualquier DAX generado por IA antes de incorporarlo al modelo.
-
-**Instrucciones:**
-
-1. En DAX Studio (conectado al modelo), ejecutar la medida generada como consulta de prueba:
-
-```DAX
--- Reemplazar [EXPRESION_GENERADA] con el DAX del LLM
+```dax
 EVALUATE
 SUMMARIZECOLUMNS(
-    'Calendario'[Año],
-    'Calendario'[Trimestre],
-    "Ventas_Actual", [Ventas],
-    "Ventas_Q_Anterior", 
-    CALCULATE(
-        [Ventas],
-        PREVIOUSQUARTER('Calendario'[Fecha])
-        -- O la expresión que el LLM haya generado
-    )
+    DimFecha[Year],
+    DimFecha[MonthNumber],
+    DimFecha[MonthName],
+    "Ventas Budget", [Ventas Budget],
+    "Ventas Forecast", [Ventas Forecast]
 )
-ORDER BY 'Calendario'[Año] DESC, 'Calendario'[Trimestre] DESC
+ORDER BY DimFecha[Year], DimFecha[MonthNumber]
+```
+>[!NOTE]
+> Esta consulta valida que las medidas de presupuesto y forecast funcionan por año y mes, sin mezclar producto, cliente o región.
+
+#### Validación C — Medida física de escenario
+
+Ejecuta:
+
+```dax
+EVALUATE
+SUMMARIZECOLUMNS(
+    DimFecha[Year],
+    "Ventas", [Ventas],
+    "Ventas Budget", [Ventas Budget],
+    "Ventas Budget vs Actual %", [Ventas Budget vs Actual %]
+)
+ORDER BY DimFecha[Year]
 ```
 
-2. Verificar los resultados:
-   - ¿El Q1 de cada año muestra las ventas del Q4 del año anterior en la columna "Ventas_Q_Anterior"?
-   - ¿Los valores son coherentes con los datos esperados?
-   - ¿Hay valores NULL inesperados?
+> `[Ventas Budget vs Actual %]` es la medida puente física. No uses `[Budget vs Actual %]`; ese nombre corresponde a un Calculation Item.
 
-3. Si la medida funciona correctamente, agregarla al modelo en Power BI Desktop:
-   - En Power BI Desktop, ir a la vista de **Datos** o **Modelo**.
-   - Seleccionar la tabla `FactSales`.
-   - Ir a **Modelado → Nueva medida** y pegar la expresión validada.
-   - Guardar el archivo `.pbix`.
+![Validación de modelo](../images/Capitulo5/1.png)
 
-4. Si la medida tiene errores, usar el siguiente prompt de corrección:
+#### Resultado Esperado
 
-```
-La medida DAX que generaste produce el siguiente error/resultado incorrecto:
-[DESCRIBIR EL ERROR O RESULTADO INCORRECTO]
-
-El resultado esperado es:
-[DESCRIBIR QUÉ DEBERÍA MOSTRAR]
-
-¿Puedes corregir la expresión? Mantén las mismas restricciones del prompt anterior.
-```
-
-**Salida esperada:** Medida validada con resultados correctos en DAX Studio, o iteración de corrección documentada.
-
-**Verificación:** La consulta en DAX Studio retorna filas con valores numéricos en ambas columnas (Ventas_Actual y Ventas_Q_Anterior) para al menos los últimos 4 trimestres del dataset.
+- Ventas por categoría se validan sin mezclar presupuesto.
+- Budget/Forecast se validan por fecha.
+- `[Ventas Budget vs Actual %]` existe y devuelve resultados.
 
 ---
 
-#### Paso C.3 — Construir el catálogo de prompts efectivos
+### Paso 2 — Crear y validar una medida nueva antes de incorporarla
 
-**Objetivo:** Documentar un catálogo reutilizable de prompts validados para las tareas DAX más comunes en el entorno de trabajo.
+**Objetivo:** usar DAX Query View como espacio seguro para probar una medida antes de crearla.
 
-**Instrucciones:**
+1. En DAX Query View, ejecuta:
 
-1. Crear el archivo `C:\LabAI\prompts\catalogo_prompts_dax.md` en VS Code.
-2. Usar la siguiente estructura y completar con los prompts usados en este laboratorio más los que diseñes:
+   ```dax
+   DEFINE
+       MEASURE _Medidas[Ventas Trimestre Anterior] =
+           CALCULATE([Ventas], PREVIOUSQUARTER(DimFecha[Date]))
+   EVALUATE
+   SUMMARIZECOLUMNS(
+       DimFecha[Year],
+       DimFecha[QuarterNumber],
+       "Ventas", [Ventas],
+       "Ventas Trimestre Anterior", [Ventas Trimestre Anterior]
+   )
+   ORDER BY DimFecha[Year], DimFecha[QuarterNumber]
+   ```
+
+2. Revisa que el primer trimestre disponible tenga el valor en blanco o cero, y que los siguientes muestren el trimestre previo.
+3. Si es correcto, hacer clic en **Actualizar modelo con cambios** para crear la medida en el modelo.
+4. Asigna formato de moneda y ubícala en la carpeta `Inteligencia de Tiempo`.
+
+![Validación de medida](../images/Capitulo5/2.png)
+
+#### Resultado Esperado
+
+- La medida queda en el modelo **solo después** de ser validada.
+
+---
+
+### Paso 3 — Guardar el modelo como PBIP
+
+**Objetivo:** obtener metadatos legibles para la documentación técnica. Elige una ruta.
+
+#### Ruta A — PBIP/TMDL desde Power BI Desktop
+
+1. **Archivo → Guardar como → Power BI Project (.pbip)**.
+2. Guarda en `C:\LabPowerBI\Lab05\Lab05_VentasRetail_IA_Documentacion_Project\`.
+3. Verifica que existan archivos/carpetas de definición semántica (`definition`, `model.tmdl`, `tables` o archivos `.tmdl`).
+
+#### Ruta B (Opcional) — BIM desde Tabular Editor
+
+1. Con el PBIX abierto, ve a **Herramientas externas → Tabular Editor**.
+2. **File → Save As** → `C:\LabPowerBI\Lab05\VentasRetail.bim`.
+3. Ábrelo en VS Code y confirma que es JSON válido.
+
+#### Resultado Esperado
+
+- Tienes una fuente de metadatos documental: PBIP/TMDL **o** BIM.
+
+---
+
+### Paso 4 — Generar y validar el diccionario técnico del modelo
+
+**Objetivo:** generar una primera versión del diccionario técnico desde metadatos locales del modelo y validar la documentación usando DAX Query View con funciones `INFO.VIEW.*`.
+
+> En este paso se combinan dos enfoques:
+>
+> * **DAX Query View + INFO.VIEW.***: permite consultar metadatos reales del modelo desde Power BI Desktop.
+> * **PBIP/TMDL o BIM + Python**: permite generar un archivo `DATA_DICTIONARY.md` estructurado, reutilizable y versionable.
+>
+> La extracción automática no reemplaza la revisión funcional del analista. Las descripciones, sensibilidad y reglas de negocio deben revisarse antes de entregar el laboratorio.
+
+---
+
+#### 4.1 Extraer metadatos desde DAX Query View
+
+1. Abre **DAX Query View** en Power BI Desktop.
+
+2. Ejecuta la siguiente consulta para revisar las tablas del modelo:
+
+   ```dax
+   EVALUATE
+   SELECTCOLUMNS(
+       INFO.VIEW.TABLES(),
+       "Tabla", [Name],
+       "Descripcion", [Description],
+       "Modo almacenamiento", [StorageMode],
+       "Categoria de datos", [DataCategory],
+       "Tabla calculada DAX", [Expression],
+       "Precedencia Calculation Group", [CalculationGroupPrecedence]
+   )
+   ORDER BY [Tabla]
+   ```
+
+3. Ejecuta la siguiente consulta para revisar las columnas visibles del modelo:
+
+   ```dax
+   EVALUATE
+   SELECTCOLUMNS(
+       FILTER(
+           INFO.VIEW.COLUMNS(),
+           [IsHidden] = FALSE()
+       ),
+       "Tabla", [Table],
+       "Columna", [Name],
+       "Tipo de dato", [DataType],
+       "Categoria de datos", [DataCategory],
+       "Descripcion", [Description],
+       "Es clave", [IsKey],
+       "Es unica", [IsUnique],
+       "Permite nulos", [IsNullable],
+       "Formato", [FormatString]
+   )
+   ORDER BY [Tabla], [Columna]
+   ```
+
+4. Ejecuta la siguiente consulta para revisar las medidas del modelo:
+
+   ```dax
+   EVALUATE
+   SELECTCOLUMNS(
+       INFO.VIEW.MEASURES(),
+       "Tabla", [Table],
+       "Medida", [Name],
+       "Descripcion", [Description],
+       "Expresion DAX", [Expression],
+       "Formato", [FormatString],
+       "Carpeta", [DisplayFolder],
+       "Estado", [State]
+   )
+   ORDER BY [Tabla], [Medida]
+   ```
+
+   > Si la expresión DAX de una medida no aparece, valida que estés trabajando con permisos de edición sobre el modelo y no mediante una conexión limitada de solo lectura.
+
+5. Ejecuta la siguiente consulta para revisar las relaciones del modelo:
+
+   ```dax
+   EVALUATE
+   SELECTCOLUMNS(
+       INFO.VIEW.RELATIONSHIPS(),
+       "Relacion", [Relationship],
+       "Activa", [IsActive],
+       "Desde tabla", [FromTable],
+       "Desde columna", [FromColumn],
+       "Hacia tabla", [ToTable],
+       "Hacia columna", [ToColumn],
+       "Cardinalidad origen", [FromCardinality],
+       "Cardinalidad destino", [ToCardinality],
+       "Filtro cruzado", [CrossFilteringBehavior],
+       "Filtro seguridad", [SecurityFilteringBehavior]
+   )
+   ORDER BY [Desde tabla], [Hacia tabla]
+   ```
+
+6. Verifica que aparezcan los objetos principales del modelo:
+
+   * `FactVentas`
+   * `DimFecha`
+   * `DimProducto`
+   * `DimCliente`
+   * `DimGeografia`
+   * `DimCanal`
+   * `DimPromocion`
+   * `FactPresupuesto`
+   * `FactForecast`
+   * `FactVentas_Agg`
+   * `_Medidas`
+---
+
+#### 4.2 Generar el diccionario técnico con el script local
+
+1. Abre una terminal en la carpeta del capítulo:
+
+   ```powershell
+   cd C:\LabPowerBI\Lab05
+   ```
+
+2. Ejecuta el script según la ruta utilizada.
+
+   Si guardaste PBIP/TMDL:
+
+   ```powershell
+   python .\scripts\documentar_modelo.py --input "C:\LabPowerBI\Lab05\Lab05_VentasRetail_IA_Documentacion_Project" --out "C:\LabPowerBI\Lab05\DATA_DICTIONARY.md"
+   ```
+
+   Si exportaste BIM:
+
+   ```powershell
+   python .\scripts\documentar_modelo.py --input "C:\LabPowerBI\Lab05\VentasRetail.bim" --out "C:\LabPowerBI\Lab05\DATA_DICTIONARY.md"
+   ```
+
+3. Abre `DATA_DICTIONARY.md` en VS Code y revisa que incluya, según disponibilidad del modelo:
+
+   * Tablas.
+   * Columnas.
+   * Relaciones.
+   * Medidas.
+   * Expresiones DAX.
+   * Carpetas de visualización.
+   * Descripciones existentes.
+
+4. Usa los resultados obtenidos con `INFO.VIEW.*` para validar o completar el contenido generado en `DATA_DICTIONARY.md`.
+
+5. Completa manualmente las descripciones pendientes, especialmente en objetos críticos como:
+
+   * `FactVentas`
+   * `FactPresupuesto`
+   * `FactForecast`
+   * `FactVentas_Agg`
+   * `[Ventas]`
+   * `[Margen %]`
+   * `[Ventas Budget]`
+   * `[Ventas Forecast]`
+   * `[Ventas Budget vs Actual %]`
+
+---
+
+#### 4.3 Agregar notas de negocio y sensibilidad
+
+Agrega una sección final en `DATA_DICTIONARY.md` llamada **Notas de negocio y sensibilidad**:
 
 ```markdown
-# Catálogo de Prompts para Asistencia DAX con IA
+## Notas de negocio y sensibilidad
 
-> **Versión:** 1.0  
-> **Autor:** [Tu nombre]  
-> **Fecha:** YYYY-MM-DD  
-> **Modelo LLM probado:** GPT-3.5-turbo / Llama 3 (indicar cuál usaste)
+| Objeto | Sensibilidad | Regla de uso |
+|---|---|---|
+| FactVentas[ImporteVenta] | Interna | No publicar granularidad transaccional fuera de BI. |
+| FactVentas[ImporteCosto] | Confidencial | Usar solo en métricas agregadas de margen. |
+| DimCliente | Interna | No exponer datos de cliente en capturas o prompts externos. |
+| SeguridadUsuarios | Confidencial | Mantener correos y asignaciones fuera de repos públicos. |
+| FactPresupuesto | Confidencial | Analizar principalmente por fecha debido a su grano mensual. |
+| FactForecast | Confidencial | Analizar principalmente por fecha debido a su grano mensual. |
+```
+![Validación de diccionario técnico](../images/Capitulo5/3.png)
+
+#### Resultado Esperado
+
+* Existe `DATA_DICTIONARY.md` con tablas, columnas, relaciones, medidas y notas de gobierno.
+* Existe `Validacion_Metadata_INFO_Lab05.dax` como evidencia de consulta de metadatos.
+* El diccionario técnico se genera de forma estructurada con Python y se valida con metadatos reales desde DAX Query View.
+* El alumno entiende que `INFO.VIEW.*` ayuda a documentar el modelo, pero la interpretación funcional y la clasificación de sensibilidad requieren revisión humana.
 
 ---
 
-## Estructura Recomendada de Prompt DAX
+### Paso 5 — Crear la bitácora de validación de IA
 
-Todo prompt efectivo para DAX debe incluir:
-1. **Contexto del modelo** — tablas, columnas relevantes, medidas existentes, relaciones.
-2. **Tarea específica** — qué calcular, con qué nombre, en qué tabla.
-3. **Restricciones** — nombres exactos a usar, funciones a evitar, supuestos.
-4. **Formato de respuesta** — DAX con comentarios + explicación + advertencias.
+**Objetivo:** documentar qué aportes fueron generados o sugeridos por IA y cómo se validaron.
 
----
+1. Crea `C:\LabPowerBI\Lab05\AI_VALIDATION_LOG.md` con esta plantilla:
 
-## Prompt 01 — Generación de Medida Nueva
+   ```markdown
+   # Bitácora de Validación de IA
 
-**Caso de uso:** Crear una medida DAX desde cero con contexto del modelo.  
-**Efectividad observada:** Alta / Media / Baja *(completar después de probar)*  
-**Validado en DAX Studio:** Sí / No
+   | Fecha | Herramienta | Prompt o solicitud | Salida evaluada | Validación realizada | Estado |
+   |---|---|---|---|---|---|
+   | AAAA-MM-DD | DAX Query View / Copilot / LLM | Explicar [Margen %] | Texto | Comparado contra DAX y resultado | Aprobado / Ajustado / Rechazado |
 
-### Template
-
-```
-## Contexto del modelo Power BI
-[DESCRIBIR TABLAS, COLUMNAS Y MEDIDAS RELEVANTES]
-
-## Tarea
-Crea una medida DAX llamada "[NOMBRE]" que calcule [DESCRIPCIÓN DEL CÁLCULO].
-
-## Restricciones
-- Usa solo las tablas y columnas descritas.
-- [RESTRICCIONES ADICIONALES]
-
-## Formato de respuesta
-1. Expresión DAX con comentarios.
-2. Explicación de 2-3 frases.
-3. Advertencias o supuestos a verificar.
-```
-
----
-
-## Prompt 02 — Explicación de Medida Existente
-
-**Caso de uso:** Generar descripción en lenguaje natural para documentación.  
-**Efectividad observada:** [completar]  
-**Validado:** [completar]
-
-### Template
-
-```
-## Glosario del modelo
-[INSERTAR GLOSARIO]
-
-## Medida a explicar
-Nombre: [NOMBRE]
-Expresión DAX:
-```DAX
-[EXPRESION]
-```
-
-## Tarea
-Explica en 2-3 frases qué calcula esta medida, qué contexto de filtro utiliza 
-y cuándo sería útil para un analista de negocio.
-
-## Restricciones
-- No inventes supuestos fuera del glosario.
-- No cambies nombres técnicos.
-- Si falta información, indícalo.
-
-## Formato
-- **Descripción:** 
-- **Contexto de filtro:** 
-- **Caso de uso:** 
-```
-
----
-
-## Prompt 03 — Refactorización de DAX
-
-**Caso de uso:** Mejorar rendimiento o legibilidad de una medida existente.  
-**Efectividad observada:** [completar]  
-**Validado:** [completar]
-
-### Template
-
-```
-## Contexto
-[DESCRIBIR EL MODELO]
-
-## Medida actual (con problema identificado)
-```DAX
-[EXPRESION ACTUAL]
-```
-
-## Problema identificado
-[DESCRIBIR: rendimiento lento / difícil de mantener / usa funciones obsoletas / etc.]
-
-## Tarea
-Refactoriza esta medida para [OBJETIVO: mejorar rendimiento / aumentar legibilidad / etc.].
-Mantén el mismo resultado semántico.
-
-## Restricciones
-- El resultado debe ser idéntico al original.
-- Usa variables (VAR) para mejorar legibilidad si aplica.
-- No cambies el nombre de la medida.
-
-## Formato
-1. Medida refactorizada con comentarios explicando los cambios.
-2. Lista de cambios realizados y justificación.
-3. Cómo verificar que el resultado es idéntico.
-```
-
----
-
-## Prompt 04 — Diagnóstico de Error DAX
-
-**Caso de uso:** Identificar y corregir errores en expresiones DAX.  
-**Efectividad observada:** [completar]  
-**Validado:** [completar]
-
-### Template
-
-```
-## Contexto del modelo
-[DESCRIBIR TABLAS Y RELACIONES RELEVANTES]
-
-## Medida con error
-```DAX
-[EXPRESION CON ERROR]
-```
-
-## Error o comportamiento incorrecto
-[DESCRIBIR: mensaje de error / resultado inesperado / valores NULL donde no deberían estar]
-
-## Resultado esperado
-[DESCRIBIR QUÉ DEBERÍA CALCULAR]
-
-## Tarea
-Identifica la causa del error y proporciona la versión corregida.
-
-## Formato
-1. Diagnóstico del problema (causa raíz).
-2. Expresión DAX corregida.
-3. Explicación del cambio realizado.
-```
-
----
-
-## Registro de Prompts Usados en Este Laboratorio
-
-| # | Tarea | Prompt usado | Resultado | ¿Requirió iteración? |
-|---|---|---|---|---|
-| 1 | Ventas Trimestre Anterior | Prompt 01 | [resultado] | Sí/No |
-| 2 | Explicar Ventas YoY % | Prompt 02 | [resultado] | Sí/No |
-| ... | ... | ... | ... | ... |
-
----
-
-## Lecciones Aprendidas
-
-### Qué funciona bien
-- [observación 1]
-- [observación 2]
-
-### Qué no funciona bien
-- [limitación 1]
-- [limitación 2]
-
-### Mejores prácticas identificadas
-1. Siempre incluir el contexto del modelo (tablas y columnas exactas).
-2. [agregar práctica propia]
-3. [agregar práctica propia]
-```
-
-3. Completar el catálogo con los prompts y resultados reales del laboratorio.
-4. Guardar el archivo.
-
-**Salida esperada:** Archivo `catalogo_prompts_dax.md` con al menos 2 prompts documentados y el registro de prompts usados en el laboratorio.
-
-**Verificación:** El catálogo tiene el campo "Efectividad observada" y "Validado en DAX Studio" completados con valores reales (no placeholders) para al menos 2 prompts.
-
----
-
-## Validación y Pruebas del Laboratorio
-
-Al finalizar los tres bloques, ejecutar la siguiente lista de verificación completa:
-
-### Lista de verificación final
-
-| # | Verificación | Criterio de éxito | Estado |
-|---|---|---|---|
-| 1 | Archivo `evaluacion_copilot.md` existe | Mínimo 3 afirmaciones validadas en tabla | `[ ]` |
-| 2 | Script `generar_documentacion.py` ejecuta sin errores | Archivo `diccionario_datos.md` generado con tablas, columnas y medidas | `[ ]` |
-| 3 | Script `enriquecer_medidas.py` ejecuta sin errores | Archivo `catalogo_medidas_enriquecido.md` con ≥5 medidas y descripciones de IA | `[ ]` |
-| 4 | Validación en DAX Studio completada | Al menos 1 medida con casillas `[x]` en el catálogo enriquecido | `[ ]` |
-| 5 | Medida "Ventas Trimestre Anterior" generada por LLM | Medida validada en DAX Studio y agregada al modelo `.pbix` | `[ ]` |
-| 6 | Catálogo de prompts creado | Mínimo 2 prompts documentados con efectividad y estado de validación | `[ ]` |
-| 7 | Estructura de carpetas correcta | `C:\LabAI\docs\`, `C:\LabAI\scripts\`, `C:\LabAI\prompts\` con archivos correspondientes | `[ ]` |
-
-### Prueba de integridad de la documentación generada
-
-Ejecutar en terminal para verificar que todos los archivos existen y tienen contenido:
-
-```bash
-for %f in (
-  "C:\LabAI\docs\diccionario_datos.md"
-  "C:\LabAI\docs\catalogo_medidas_enriquecido.md"
-  "C:\LabAI\docs\evaluacion_copilot.md"
-  "C:\LabAI\prompts\catalogo_prompts_dax.md"
-) do (
-  if exist %f (
-    echo [OK] Existe: %f
-  ) else (
-    echo [FALTA] No encontrado: %f
-  )
-)
-```
-
-**Resultado esperado:** Cuatro líneas `[OK]` sin ninguna `[FALTA]`.
-
----
-
-## Solución de Problemas
-
-### Problema 1 — El script Python falla con `KeyError` o `JSONDecodeError` al parsear el `.bim`
-
-**Síntomas:**
-- El script `generar_documentacion.py` termina con un traceback mostrando `KeyError: 'tables'` o `json.decoder.JSONDecodeError`.
-- El archivo `diccionario_datos.md` no se genera o está vacío.
-
-**Causa:**
-La estructura JSON del archivo `.bim` puede variar según la versión de Tabular Editor y el nivel de compatibilidad del modelo. Algunos archivos `.bim` tienen la estructura `{ "model": { "tables": [...] } }` mientras que otros (especialmente modelos PBIP) tienen `{ "tables": [...] }` directamente en la raíz. Adicionalmente, si el archivo fue exportado con codificación diferente a UTF-8, el parser de JSON puede fallar.
-
-**Solución:**
-1. Abrir el archivo `.bim` en VS Code y verificar la estructura de primer nivel:
-   ```bash
-   # En PowerShell, ver las primeras 5 líneas del archivo:
-   Get-Content "C:\LabAI\AdventureWorks.bim" -TotalCount 5
+   ## Criterios de aceptación
+   - Toda cifra se verifica contra una visual, una consulta DAX o una medida existente.
+   - Toda medida sugerida se ejecuta primero en DAX Query View o DAX Studio.
+   - No se pegan datos sensibles, correos, costos transaccionales ni llaves en servicios externos.
+   - Las explicaciones de IA se editan antes de publicarse.
    ```
-2. Si la raíz del JSON tiene `"tables"` directamente (sin clave `"model"`), modificar la línea en el script:
-   ```python
-   # Cambiar esta línea en generar_documentacion.py:
-   modelo = bim.get("model", bim)
-   # Por esta si el .bim tiene estructura plana:
-   modelo = bim  # sin nivel "model"
-   ```
-3. Si el error es de codificación, exportar nuevamente desde Tabular Editor 2 asegurándose de que VS Code muestra "UTF-8" en la barra de estado inferior al abrir el archivo.
-4. Volver a ejecutar el script.
+
+2. Registra al menos dos filas reales durante este capítulo (una explicación de medida y una sugerencia de narrativa).
+
+![Validación de bitácora de IA](../images/Capitulo5/5.png)
+
+#### Resultado Esperado
+
+- La entrega incluye trazabilidad sobre el uso de IA.
 
 ---
 
-### Problema 2 — Las llamadas a la API del LLM retornan errores de autenticación o rate limit
+### Paso 6 — Usar IA como asistente opcional de explicación DAX
 
-**Síntomas:**
-- El script `enriquecer_medidas.py` muestra mensajes como `[ERROR en llamada OpenAI: Error code: 401 - Unauthorized]` o `[ERROR en llamada OpenAI: Error code: 429 - Too Many Requests]`.
-- Algunas medidas en el catálogo tienen la descripción `[ERROR en llamada OpenAI: ...]` en lugar de texto generado.
+**Objetivo:** generar documentación más clara sin perder control técnico.
 
-**Causa:**
-El error 401 indica que la API key no está configurada correctamente o ha expirado. El error 429 indica que se ha superado el límite de solicitudes por minuto (rate limit) de la cuenta gratuita o de prueba de OpenAI.
+Usa Copilot chat (https://m365.cloud.microsoft/) e inicia sesión con la cuenta provista por el instructor.
 
-**Solución:**
-*Para error 401 (autenticación):*
-1. Verificar que la variable de entorno está configurada correctamente:
-   ```bash
-   # En una nueva terminal (después de ejecutar setx):
-   echo %OPENAI_API_KEY%
-   # Debe mostrar tu API key, no una cadena vacía
-   ```
-2. Si está vacía, establecerla directamente en el script de forma temporal:
-   ```python
-   # En enriquecer_medidas.py, línea de configuración:
-   OPENAI_API_KEY = "sk-TUAPIKEY"  # Solo para pruebas, no versionar este valor
-   ```
-3. Alternativamente, cambiar a Ollama local (`USE_OPENAI = False`) si está disponible.
+1. Toma la medida `Margen % = DIVIDE([Margen], [Ventas], 0)`.
+2. Usa este prompt **sin pegar datos sensibles**:
 
-*Para error 429 (rate limit):*
-1. Aumentar el valor de `DELAY_ENTRE_LLAMADAS` en el script:
-   ```python
-   DELAY_ENTRE_LLAMADAS = 5  # Aumentar de 1 a 5 segundos
+   ```text
+   Actúa como revisor técnico de Power BI. Explica esta medida DAX en español para
+   un diccionario de datos. Incluye: propósito, dependencias, comportamiento ante
+   división por cero, granularidad esperada y riesgos de interpretación.
+   No inventes columnas ni tablas que no estén en la expresión.
+
+   Medida:
+   Margen % = DIVIDE([Margen], [Ventas], 0)
    ```
-2. Reducir `MAX_MEDIDAS_A_PROCESAR` a 5 para el laboratorio:
-   ```python
-   MAX_MEDIDAS_A_PROCESAR = 5
-   ```
-3. Si el problema persiste, usar la opción de Ollama local que no tiene rate limits.
+
+3. Revisa la respuesta y corrige si menciona objetos inexistentes.
+4. Copia la versión validada en `DATA_DICTIONARY.md`, debajo de la medida `Margen %`.
+5. Registra el uso en `AI_VALIDATION_LOG.md`.
+
+![Validación de explicación de medida](../images/Capitulo5/4.png)
+
+#### Resultado Esperado
+
+- Al menos una medida queda documentada con explicación funcional validada.
 
 ---
 
-## Limpieza del Entorno
+### Paso 7 — Crear una narrativa técnica en Power BI con apoyo de Copilot Chat básico
 
-> **Nota:** Conservar los archivos de documentación generados ya que son entregables del laboratorio. Solo eliminar archivos temporales y cachés.
+**Objetivo:** comunicar insights del modelo usando visuales, valores dinámicos de Power BI y apoyo de Copilot Chat básico para mejorar la redacción técnica, sin depender de texto estático y sin usar Calculation Items como si fueran medidas físicas.
 
-**Paso 1 — Verificar y versionar los entregables:**
+> En este laboratorio se usará **Copilot Chat básico** como apoyo externo para redactar y revisar la narrativa.
+> La narrativa final se construirá dentro de Power BI mediante el visual **Smart Narrative** en **modo personalizado**, insertando valores dinámicos del modelo.
+> No se asumirá disponibilidad de **Copilot para Power BI**, ya que esa capacidad depende de la licencia, tenant y configuración de capacidad de la organización.
 
-```bash
-# Listar todos los entregables del laboratorio
-dir C:\LabAI\docs\
-dir C:\LabAI\prompts\
-```
+1. Ve a la página `05 - Narrativa Tecnica` y agrega los siguientes visuales:
 
-**Paso 2 — Si se usó una API key temporal en el script, removerla:**
+   | Visual            | Campos sugeridos                    | Nota                                   |
+   | ----------------- | ----------------------------------- | -------------------------------------- |
+   | Tarjeta           | `[Ventas]`                          | Actual bajo filtros activos.           |
+   | Tarjeta           | `[Margen %]`                        | Formato porcentaje.                    |
+   | Tarjeta           | `[Ventas Budget vs Actual %]`       | Medida física puente.                  |
+   | Gráfico de líneas | `DimFecha[MonthName]` y `[Ventas]`  | Ordena por `DimFecha[MonthNumber]`.    |
+   | Barras por región | `DimGeografia[Region]` y `[Ventas]` | Usa ventas reales, no Budget/Forecast. |
 
-```python
-# Asegurarse de que el archivo enriquecer_medidas.py NO tenga la API key hardcodeada
-# Debe usar: OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-```
+2. Revisa los valores mostrados en las tarjetas y registra manualmente los resultados principales en una breve bitácora de validación.
 
-**Paso 3 — Comprimir los entregables para entrega:**
+   Ejemplo:
 
-```bash
-# Crear archivo ZIP con todos los entregables del laboratorio
-powershell Compress-Archive -Path "C:\LabAI\*" -DestinationPath "C:\LabAI_Lab05_Entregables.zip"
-```
+   ```text
+   Ventas: <valor observado>
+   Margen %: <valor observado>
+   Ventas Budget vs Actual %: <valor observado>
+   Región con mayores ventas: <valor observado>
+   Tendencia mensual observada: <creciente, decreciente o variable>
+   Filtros activos: <fecha, región, escenario u otros filtros aplicados>
+   ```
 
-**Paso 4 — Si se usó Ollama local, detener el servicio:**
+3. Abre **Copilot Chat básico** y solicita apoyo para redactar una narrativa técnica usando los valores observados.
 
-```bash
-# Verificar si Ollama está corriendo
-tasklist | findstr ollama
-# Si aparece en la lista, cerrarlo desde la bandeja del sistema o:
-taskkill /IM ollama.exe /F
-```
+   Usa un prompt similar al siguiente:
 
-**Paso 5 — Cerrar conexiones de DAX Studio:**
+   ```text
+   Actúa como analista senior de Power BI. 
+   Redacta una narrativa técnica breve para una página de reporte de ventas retail.
 
-- En DAX Studio, ir a **File → Close** para cerrar la conexión con Power BI Desktop.
-- Guardar el archivo `.pbix` con la nueva medida "Ventas Trimestre Anterior" agregada.
+   Usa estos resultados observados:
+   - Ventas: <valor observado>
+   - Margen %: <valor observado>
+   - Ventas Budget vs Actual %: <valor observado>
+   - Región con mayores ventas: <valor observado>
+   - Tendencia mensual: <valor observado>
+   - Filtros activos: <fecha, región, escenario u otros filtros>
+
+   Reglas:
+   - No inventes cifras.
+   - No agregues conclusiones que no estén respaldadas por los datos entregados.
+   - Explica que Budget y Forecast están a grano mensual.
+   - Aclara que los cortes por producto, cliente o región aplican principalmente a ventas reales, salvo que el modelo tenga presupuesto a ese mismo grano.
+   - Redacta en tono técnico, claro y ejecutivo.
+   - Limita la respuesta a un máximo de 5 líneas.
+   ```
+
+4. Revisa la respuesta generada por Copilot Chat básico y valida cada afirmación contra los visuales de Power BI.
+
+   Verifica especialmente:
+
+   * Que las cifras coincidan con las tarjetas del reporte.
+   * Que no se hayan inventado porcentajes, regiones o tendencias.
+   * Que no se interprete Budget/Forecast a un grano que el modelo no tiene.
+   * Que no se mencione `[Budget vs Actual %]` como si fuera una medida física.
+   * Que la comparación contra presupuesto use la medida `[Ventas Budget vs Actual %]`.
+
+5. Inserta un visual **Smart Narrative** en la página `05 - Narrativa Tecnica`.
+
+6. Usa **modo personalizado** y redacta la narrativa final dentro de Power BI, usando como base la redacción validada con Copilot Chat básico.
+
+
+7. Inserta valores dinámicos en el Smart Narrative para las siguientes medidas:
+para crear valores dinámicos, escribe el texto normalmente y luego selecciona la parte que quieres convertir en valor dinámico, haz clic en el ícono de fx y elige la medida correspondiente.
+
+   ```text
+   [Ventas]
+   [Margen %]
+   [Ventas Budget vs Actual %]
+   ```
+
+8. Guarda el archivo como:
+
+   ```text
+   Lab05_VentasRetail_IA_Documentacion.pbix
+   ```
+
+![Validación de narrativa técnica](../images/Capitulo5/6.png)
+
+#### Resultado Esperado
+
+* La página comunica resultados mediante visuales y narrativa dinámica.
+* Copilot Chat básico se usa como apoyo para redacción, no como fuente automática de cifras.
+* La narrativa final se mantiene dentro de Power BI usando Smart Narrative y valores dinámicos.
+* Las cifras se validan contra los visuales antes de publicar.
+* La narrativa no referencia `[Budget vs Actual %]` como medida inexistente.
+* La comparación contra presupuesto usa la medida física puente `[Ventas Budget vs Actual %]`.
+
 
 ---
 
-## Resumen
+### Paso 8 — Construir el catálogo de prompts reutilizable
 
-En este laboratorio has construido un flujo de trabajo completo de productividad asistida por IA para el desarrollo Power BI, articulado en tres dimensiones:
+**Objetivo:** dejar una herramienta práctica para futuros desarrollos.
 
-**Copilot en Power BI Service:** Experimentaste de primera mano cómo las narrativas generadas automáticamente pueden acelerar la comunicación de insights, pero también identificaste la necesidad de validar cada afirmación numérica contra los datos reales. La evaluación crítica no es opcional; es parte del flujo de trabajo profesional.
+1. Crea `C:\LabPowerBI\Lab05\PROMPTS_DAX.md` con este catálogo:
 
-**Automatización de documentación:** Construiste scripts Python reutilizables que parsean el archivo `.bim` y producen documentación estructurada en Markdown, enriquecida con descripciones generadas por LLM. Este enfoque transforma la documentación de una tarea manual y esporádica a un proceso automatizable y versionable en Git.
+   ````markdown
+   # Catálogo de Prompts DAX y Documentación Power BI
 
-**Asistencia DAX con IA:** Aprendiste que la calidad del output del LLM es directamente proporcional a la calidad del contexto que le proporcionas. Los prompts con estructura (Contexto + Tarea + Restricciones + Formato) producen resultados significativamente más precisos y útiles que las preguntas genéricas. El catálogo de prompts que construiste es un activo reutilizable para tu trabajo diario.
+   ## 1. Explicar una medida
+   ```text
+   [Crea un prompt para explicar esta medida DAX, incluyendo propósito, dependencias, granularidad y riesgos de interpretación. No inventes objetos que no estén en la expresión.]
+   ```
 
-El principio fundamental que atraviesa todo el laboratorio: **la IA resume y acelera, pero la validación humana es obligatoria**. Las casillas de verificación en el catálogo de medidas no son decorativas; representan el contrato de calidad que separa un output de IA de un artefacto técnico confiable.
+   ## 2. Refactorizar una medida
+   ```text
+   [Crea un prompt para sugerir mejoras o refactorizaciones a esta medida DAX, enfocándote en rendimiento, legibilidad o mejores prácticas. No asumas objetos que no estén en la expresión.]
+   ```
 
-### Recursos Adicionales
+   ## 3. Crear consulta de validación
+   ```text
+   [Crea un prompt para generar una consulta DAX que valide el resultado de esta medida contra los datos del modelo, sin asumir objetos que no estén en la expresión.]
+   ```
+
+   ## 4. Documentar una tabla
+   ```text
+   [Crea un prompt para generar una descripción técnica de esta tabla, incluyendo su propósito, granularidad, relaciones clave y cualquier consideración de sensibilidad o uso. No inventes columnas ni relaciones que no existan.]
+   ```
+   ````
+
+#### Resultado Esperado
+
+- Existe un archivo `PROMPTS_DAX.md` con prompts claros, reutilizables y clasificados por tipo de necesidad.
+- Los prompts enfatizan la validación y el no asumir objetos inexistentes, para evitar respuestas de IA que no se ajusten al modelo real.
+
+---
+
+### Paso 9 — Paquete final de entrega
+
+**Objetivo:** cerrar el taller con artefactos verificables.
+
+1. Guarda el PBIX como `C:\LabPowerBI\Lab05\Lab05_VentasRetail_IA_Documentacion.pbix`.
+2. Verifica que tienes estos archivos:
+
+   | Archivo | Obligatorio | Evidencia |
+   |---|---|---|
+   | `Lab05_VentasRetail_IA_Documentacion.pbix` | Sí | Modelo final con página `05 - Narrativa Tecnica`. |
+   | `DATA_DICTIONARY.md` | Sí | Diccionario técnico generado y revisado. |
+   | `AI_VALIDATION_LOG.md` | Sí | Bitácora con al menos dos filas reales. |
+   | `PROMPTS_DAX.md` | Sí | Catálogo de prompts reutilizables. |
+   
+#### Resultado Esperado
+
+- Paquete final completo y verificable.
+
+---
+## 8. Lista de verificación de completitud
+
+| # | Verificación | Estado |
+|---|---|--------|
+| 1 | `Lab05_VentasRetail_IA_Documentacion.pbix` abre sin errores | ☐ |
+| 2 | Página `05 - Narrativa Tecnica` con KPIs, visuales y Smart Narrative | ☐ |
+| 3 | `Ventas Trimestre Anterior` validada antes de agregarse | ☐ |
+| 4 | `DATA_DICTIONARY.md` con tablas, relaciones, columnas y medidas | ☐ |
+| 5 | `DATA_DICTIONARY.md` con notas de negocio y sensibilidad | ☐ |
+| 6 | `AI_VALIDATION_LOG.md` con al menos dos usos de IA | ☐ |
+| 7 | `PROMPTS_DAX.md` con prompts clasificados | ☐ |
+| 8 | Ningún prompt externo contiene datos sensibles | ☐ |
+| 9 | Cifras narrativas verificadas contra el modelo | ☐ |
+
+---
+
+## 9. Cierre del laboratorio
+
+**Encadenamiento:**
+
+- **Entrada de este lab:** `Lab04_VentasRetail_Gobierno_DevOps.pbix` (salida de Cap04).
+- **Salida final del curso:** `C:\LabPowerBI\Lab05\Lab05_VentasRetail_IA_Documentacion.pbix` + documentación técnica.
+
+---
+
+## 10. Recursos de referencia
 
 | Recurso | URL |
 |---|---|
-| Copilot en Microsoft Fabric — Documentación oficial | https://learn.microsoft.com/fabric/get-started/copilot-fabric-overview |
-| Power BI REST API — Datasets | https://learn.microsoft.com/rest/api/power-bi/datasets/get-dataset-in-group |
-| XMLA Endpoints en Power BI Premium | https://learn.microsoft.com/power-bi/enterprise/service-premium-connect-tools |
-| Tabular Editor 3 — Scripting avanzado | https://docs.tabulareditor.com/te3/Advanced/Scripting.html |
-| OpenAI API — Documentación Python | https://platform.openai.com/docs/libraries/python-library |
-| Ollama — LLMs locales gratuitos | https://ollama.ai |
-| Smart Narrative Visual en Power BI | https://learn.microsoft.com/power-bi/visuals/power-bi-visualization-smart-narrative |
-| Key Influencers Visual | https://learn.microsoft.com/power-bi/visuals/power-bi-visualization-influencers |
-| Power BI Project (PBIP) — Control de versiones | https://learn.microsoft.com/power-bi/developer/projects/projects-overview |
-
----
-*Lab 05-00-01 — Versión 1.0 | Curso: Optimización Avanzada y Gobierno de Modelos Semánticos en Power BI*
+| DAX Query View | https://learn.microsoft.com/power-bi/transform-model/dax-query-view |
+| Smart Narrative | https://learn.microsoft.com/power-bi/visuals/power-bi-visualization-smart-narrative |
+| Copilot en Power BI | https://learn.microsoft.com/power-bi/create-reports/copilot-introduction |
+| Power BI projects (PBIP) | https://learn.microsoft.com/power-bi/developer/projects/projects-overview |
+| TMDL (Tabular Model Definition Language) | https://learn.microsoft.com/analysis-services/tmdl/tmdl-overview |

@@ -1,6 +1,4 @@
----LAB_START---
-LAB_ID: 01-00-01
----MARKDOWN---
+
 # Optimización de la Capa Semántica: Reducción de Deuda Técnica y Memoria
 
 ## 1. Metadatos
@@ -13,7 +11,7 @@ LAB_ID: 01-00-01
 | **Módulo**          | Módulo 1 — Optimización Semántica Avanzada                            |
 | **Herramientas**    | Power BI Desktop, DAX Studio, VertiPaq Analyzer, Power Query (M), DAX |
 | **Archivo inicial** | `Lab01_VentasRetail_DeudaTecnica.pbix`                                |
-| **Archivo solución**| `Lab01_VentasRetail_Optimizado_SOLUCION.pbix`                         |
+| **Archivo final esperado** | `Lab01_VentasRetail_Optimizado.pbix`                          |
 
 ---
 
@@ -27,79 +25,47 @@ En este laboratorio recibirás un modelo semántico Power BI construido delibera
 
 Al finalizar este laboratorio serás capaz de:
 
-- [ ] Identificar y cuantificar fuentes de deuda técnica (columnas de alta cardinalidad, medidas duplicadas, relaciones ineficientes) usando VertiPaq Analyzer y DMVs en DAX Studio.
-- [ ] Aplicar técnicas de optimización de memoria en Power Query: conversión de tipos, eliminación de columnas y reducción de cardinalidad mediante dimensiones de referencia.
-- [ ] Refactorizar medidas DAX redundantes en medidas base reutilizables utilizando `CALCULATE`, `DIVIDE` y variables `VAR`.
-- [ ] Desactivar *Auto date/time* e implementar una dimensión de fechas única (`DimFecha`) para eliminar tablas ocultas redundantes.
-- [ ] Validar el impacto de las optimizaciones comparando métricas de tamaño de modelo y rendimiento de consultas antes y después de cada intervención.
+- Identificar y cuantificar fuentes de deuda técnica (columnas de alta cardinalidad, medidas duplicadas, relaciones ineficientes) usando VertiPaq Analyzer y DMVs en DAX Studio.
+- Aplicar técnicas de optimización de memoria en Power Query: conversión de tipos, eliminación de columnas y reducción de cardinalidad mediante dimensiones de referencia.
+- Refactorizar medidas DAX redundantes en medidas base reutilizables utilizando `CALCULATE`, `DIVIDE` y variables `VAR`.
+- Desactivar *Auto date/time* e implementar una dimensión de fechas única (`DimFecha`) para eliminar tablas ocultas redundantes.
+- Validar el impacto de las optimizaciones comparando métricas de tamaño de modelo y rendimiento de consultas antes y después de cada intervención.
 
 ---
 
-## 4. Prerrequisitos
+## 4. Antes de comenzar
 
-### Conocimiento previo
+Antes de iniciar, verifica que el entorno ya fue preparado siguiendo el archivo `SETUP.md`.
 
-| Área                        | Nivel requerido                                                              |
-|-----------------------------|------------------------------------------------------------------------------|
-| Modelado relacional Power BI | Intermedio — creación de tablas, relaciones y esquema estrella              |
-| Tipos de datos Power BI      | Básico — diferencia entre texto, entero, decimal, fecha                     |
-| DAX                          | Básico — medidas calculadas, columnas calculadas, diferencia entre ambas    |
-| Power Query (M)              | Básico — transformaciones de tipo, columnas personalizadas                  |
-| DAX Studio                   | Básico — instalación y conexión a Power BI Desktop                          |
+Debes tener disponible:
 
-### Acceso y archivos necesarios
+- Power BI Desktop.
+- DAX Studio.
+- VertiPaq Analyzer desde DAX Studio.
+- Archivo inicial: `C:\LabPowerBI\Lab01\Lab01_VentasRetail_DeudaTecnica.pbix`.
+- Carpeta para capturas: `C:\LabPowerBI\Lab01\Capturas`.
+- Carpeta para archivos VPAX: `C:\LabPowerBI\Lab01\VPAX`.
 
-- Power BI Desktop instalado (versión mínima junio 2024).
-- DAX Studio 3.1.x o superior instalado y con conexión verificada a Power BI Desktop.
-- Archivo de práctica `Lab01_VentasRetail_DeudaTecnica.pbix` descargado desde el repositorio del curso.
-- Carpeta de trabajo local creada: `C:\LabPowerBI\Lab01\`.
+No optimices el modelo antes de iniciar. El archivo inicial fue construido deliberadamente con deuda técnica para que puedas diagnosticarla y corregirla durante el laboratorio.
 
 ---
 
-## 5. Entorno de Laboratorio
+## 5. Escenario del laboratorio
 
-### Hardware recomendado
+En este laboratorio trabajarás con un modelo semántico de ventas retail que contiene problemas intencionales de diseño y optimización. Tu objetivo será diagnosticar esos problemas, aplicar mejoras y comparar el modelo antes y después de la intervención.
 
-| Componente     | Mínimo                        | Recomendado                    |
-|----------------|-------------------------------|--------------------------------|
-| RAM            | 16 GB                         | 32 GB                          |
-| Procesador     | Intel i5 8ª gen / Ryzen 5     | Intel i7/i9 o Ryzen 7          |
-| Almacenamiento | 50 GB libres en SSD           | 100 GB libres en SSD           |
-| Pantalla       | 1920×1080                     | Monitor dual o 2K/4K           |
+El modelo inicial contiene, entre otros elementos:
 
-### Software requerido
+- Columnas calculadas materializadas en la tabla de hechos.
+- Medidas DAX duplicadas o redundantes.
+- Columnas de alta cardinalidad que no aportan valor analítico.
+- Campos DateTime con granularidad innecesaria.
+- Auto date/time activo.
+- Relaciones many-to-many evitables.
+- Relaciones bidireccionales sin justificación.
+- Una dimensión de fechas que deberá quedar como referencia única para el análisis temporal.
 
-| Herramienta          | Versión mínima     | Propósito en este lab                              |
-|----------------------|--------------------|----------------------------------------------------|
-| Power BI Desktop     | Junio 2024         | Editor principal del modelo semántico              |
-| DAX Studio           | 3.1.x              | Consultas DMV, exportación VPAX, benchmarking      |
-| VertiPaq Analyzer    | Integrado en DAX Studio | Análisis de memoria por columna y tabla       |
-| Power Query (M)      | Incluido en PBI Desktop | Transformaciones de tipo y reducción de datos |
-| Explorador de archivos / Notepad | — | Registro de métricas en archivo de bitácora   |
-
-### Preparación del entorno
-
-Ejecuta los siguientes pasos **antes** de iniciar los ejercicios:
-
-**1. Crear carpeta de trabajo:**
-```
-md C:\LabPowerBI\Lab01
-md C:\LabPowerBI\Lab01\Capturas
-md C:\LabPowerBI\Lab01\VPAX
-```
-
-**2. Copiar archivo de práctica:**
-```
-copy <ruta_descarga>\Lab01_VentasRetail_DeudaTecnica.pbix C:\LabPowerBI\Lab01\
-```
-
-**3. Verificar conexión DAX Studio → Power BI Desktop:**
-- Abre `Lab01_VentasRetail_DeudaTecnica.pbix` en Power BI Desktop.
-- Abre DAX Studio → selecciona **PBI / SSDT Model** → confirma que aparece el modelo `Lab01_VentasRetail_DeudaTecnica`.
-
-**4. Desactivar Auto date/time (configuración global):**
-> Esta configuración se realizará también dentro del ejercicio, pero conviene verificarla antes.
-> En Power BI Desktop: **Archivo → Opciones y configuración → Opciones → Carga de datos (global)** → desmarcar *"Auto date/time for new files"*.
+Al finalizar, guardarás una versión optimizada del modelo y compararás métricas de memoria y rendimiento frente al estado inicial.
 
 ---
 
@@ -107,35 +73,40 @@ copy <ruta_descarga>\Lab01_VentasRetail_DeudaTecnica.pbix C:\LabPowerBI\Lab01\
 
 ---
 
-### Paso 1 — Diagnóstico Inicial: Exportar y Analizar el VPAX
+### Paso 1 — Diagnóstico inicial: exportar y analizar el VPAX
 
 **Objetivo:** Establecer la línea base del modelo documentando tamaño total, columnas de mayor consumo y cardinalidades problemáticas antes de cualquier modificación.
 
-#### Instrucciones
-
-1. Con el archivo `Lab01_VentasRetail_DeudaTecnica.pbix` abierto en Power BI Desktop, abre **DAX Studio**.
+1. Con el archivo `Lab01_VentasRetail_DeudaTecnica.pbix` abierto en Power BI Desktop, abre **DAX Studio**. El archivo se encuentra en `C:\LabPowerBI\Lab01\Lab01_VentasRetail_DeudaTecnica.pbix`.
 
 2. En DAX Studio, conecta al modelo: menú **Home → Connect → PBI / SSDT Model** y selecciona `Lab01_VentasRetail_DeudaTecnica`.
+   
+   ![Conexión a modelo en DAX Studio](../images/Capitulo1/1.png)
 
 3. Exporta el VPAX: menú **Advanced → Export Metrics (VertiPaq Analyzer)**. Guarda el archivo como:
    ```
    C:\LabPowerBI\Lab01\VPAX\Lab01_ANTES.vpax
    ```
+   ![Exportar VPAX en DAX Studio](../images/Capitulo1/2.png)
 
 4. Abre VertiPaq Analyzer: menú **Advanced → View Metrics** (si no se abre automáticamente, abre el archivo `.vpax` guardado).
 
-5. En la pestaña **Summary**, registra en tu bitácora los siguientes valores:
+   ![VertiPaq Analyzer](../images/Capitulo1/3.png)
+
+5. En la pestaña **Summary**, registra en tu bitácora (En un archivo de Excel) los siguientes valores:
 
    | Métrica                        | Valor inicial |
-   |-------------------------------|---------------|
-   | Tamaño total del modelo (MB)  | ___________   |
-   | Número de tablas              | ___________   |
-   | Número de columnas total      | ___________   |
-   | Columnas calculadas (count)   | ___________   |
+   |------------------------------- |---------------|
+   | Tamaño total del modelo (MiB)  | ___________   |
+   | Número de tablas               | ___________   |
+   | Número de columnas total       | ___________   |
+   | Número de columnas calculadas  | ___________   |
+
+   ![Resumen de métricas en VertiPaq Analyzer](../images/Capitulo1/4.png)
 
 6. En la pestaña **Columns**, ordena por **Total Size** (descendente). Identifica y anota las **5 columnas de mayor tamaño**:
 
-   | Tabla            | Columna              | Cardinalidad | Tipo de dato | Tamaño (KB) |
+   | Tabla            | Columna              | Cardinalidad | Tipo de dato | Tamaño (B) |
    |------------------|----------------------|--------------|--------------|-------------|
    | ___________      | ___________          | ___________  | ___________  | ___________ |
    | ___________      | ___________          | ___________  | ___________  | ___________ |
@@ -143,61 +114,132 @@ copy <ruta_descarga>\Lab01_VentasRetail_DeudaTecnica.pbix C:\LabPowerBI\Lab01\
    | ___________      | ___________          | ___________  | ___________  | ___________ |
    | ___________      | ___________          | ___________  | ___________  | ___________ |
 
-7. Filtra la vista de columnas para mostrar solo **columnas calculadas** (columna *Is Calculated = TRUE*). Anota cuántas existen y en qué tablas.
+      
+   ![Columnas ordenadas por tamaño en VertiPaq Analyzer](../images/Capitulo1/5.png)
+
+7. Ejecuta la siguiente consulta DMV en DAX Studio para identificar columnas calculadas materializadas, registra la información en la bitácora:
+
+   | Tabla            | Columna calculada   | Expresión DAX     | Tipo de columna |
+   |------------------|---------------------|-------------------|-----------------|
+   | ___________      | ___________         | ___________       | ___________     |
+   | ___________      | ___________         | ___________       | ___________     |
+   | ___________      | ___________         | ___________       | ___________     |
+
+   ```DAX
+   SELECT
+      [TableID],
+      [ExplicitName],
+      [Expression],
+      [Type]
+   FROM $SYSTEM.TMSCHEMA_COLUMNS
+   WHERE [TableID] = 19
+
+   ```
+   ![Consulta DMV para columnas calculadas](../images/Capitulo1/6.png)
+
 
 8. Ejecuta la siguiente consulta DMV en DAX Studio para identificar medidas con lógica potencialmente duplicada:
 
-```DAX
-SELECT
-    [MEASUREGROUP_NAME]    AS [Tabla],
-    [MEASURE_NAME]         AS [Medida],
-    [EXPRESSION]           AS [Expresion DAX]
-FROM $SYSTEM.MDSCHEMA_MEASURES
-WHERE [MEASURE_IS_VISIBLE] = TRUE
-ORDER BY [MEASUREGROUP_NAME], [MEASURE_NAME]
-```
+   ```DAX
+   SELECT
+      [MEASUREGROUP_NAME] AS [Tabla],
+      [MEASURE_NAME] AS [Medida],
+      [EXPRESSION] AS [Expresion DAX],
+      [MEASURE_IS_VISIBLE] AS [Visible]
+   FROM $SYSTEM.MDSCHEMA_MEASURES
 
-9. Revisa los resultados. Marca en la lista las medidas que parezcan calcular lo mismo con expresiones ligeramente distintas (por ejemplo, `Ventas_Total`, `Total Ventas`, `SumaVentas`).
+   ```
+   ![Consulta DMV para medidas](../images/Capitulo1/7.png)
 
-10. Toma una captura de pantalla de la pestaña **Summary** de VertiPaq Analyzer y guárdala como:
+9. Revisa las filas visibles y localiza medidas que calculen lo mismo con nombres diferentes o expresiones equivalentes. En este modelo deberías encontrar medidas como `Ventas_Total`, `Total Ventas`, `SumaVentas`, `Margen Bruto` y `PorcentajeMargen`. registra la información en la bitácora:
+
+      | Tabla            | Medida              | Expresión DAX     | Observación     |
+      |------------------|---------------------|-------------------|-----------------|
+      | ___________      | ___________         | ___________       | ___________     |
+      | ___________      | ___________         | ___________       | ___________     |
+      | ___________      | ___________         | ___________       | ___________     |
+
+   ![Identificación de medidas duplicadas](../images/Capitulo1/8.png)
+
+10. **Ejecutar consultas de benchmark:** En DAX Studio, ejecuta las siguientes consultas de benchmark. Para cada una, usa **Query → Run** y registra el tiempo de **Server Timings** en la bitácora (habilita con **Home → Server Timings**).
+
+      **Consulta de benchmark 1 — Ventas por categoría y año:**
+
+      ```DAX
+      EVALUATE 
+         SUMMARIZECOLUMNS(
+            DimProducto[Category], 
+            DimFecha[Year], 
+            "Ventas", [Ventas_Total], 
+            "Margen", [Margen Bruto], 
+            "Margen %", [PorcentajeMargen] 
+      )
+      ```
+      Revisa el panel **Server Timings** y registra el tiempo total (Total ms) en la bitácora.
+
+      **Consulta de benchmark 2 — Top 10 clientes por ventas:**
+
+      ```DAX
+      EVALUATE 
+         TOPN( 
+            10, 
+            SUMMARIZECOLUMNS( 
+               DimCliente[CustomerName], 
+               "Ventas", [SumaVentas] 
+            ), 
+            [Ventas], DESC
+         )
+      ```
+      Revisa el panel **Server Timings** y registra el tiempo total (Total ms) en la bitácora.
+
+      **Consulta de benchmark 3 — Ventas mensuales del último año:**
+
+         ```DAX
+         CALCULATETABLE( 
+            SUMMARIZECOLUMNS( 
+               DimFecha[Year], 
+               DimFecha[MonthNumber], 
+               DimFecha[MonthName], 
+               "Ventas", [Total Ventas], 
+               "Unidades", [Unidades_Total] 
+            ), 
+            DimFecha[Year] = YEAR(TODAY()) - 1 
+         )
+         
+         ```
+
+      Revisa el panel **Server Timings** y registra el tiempo total (Total ms) en la bitácora.
+
+      Registra los tiempos en tu bitácora:
+
+      | Consulta       | Tiempo (ms)
+      |----------------|-------------------|
+      | Benchmark 1    | ___________       |
+      | Benchmark 2    | ___________       |
+      | Benchmark 3    | ___________       |
+
+11. Toma una captura de pantalla de la pestaña **Summary** de VertiPaq Analyzer y guárdala como:
     ```
     C:\LabPowerBI\Lab01\Capturas\01_VertiPaq_ANTES_Summary.png
     ```
 
-#### Resultado Esperado
+### Resultado Esperado
 
 - Archivo `Lab01_ANTES.vpax` guardado correctamente.
 - Bitácora con tamaño inicial del modelo, top 5 columnas por consumo y lista de medidas potencialmente duplicadas.
-- Identificación de al menos: 1 columna DateTime con hora innecesaria, 1 columna de texto con cardinalidad > 10,000, y 2+ columnas calculadas materializadas.
 
-#### Verificación
-
-En DAX Studio, ejecuta:
-
-```DAX
-SELECT
-    [TABLE_NAME]   AS [Tabla],
-    [COLUMN_ID]    AS [Columna],
-    [DICTIONARY_SIZE] AS [Tamanio_Diccionario_Bytes]
-FROM $SYSTEM.DISCOVER_STORAGE_TABLE_COLUMN_SEGMENTS
-ORDER BY [DICTIONARY_SIZE] DESC
-```
-
-Confirma que los resultados coinciden con lo observado en VertiPaq Analyzer. Las columnas con diccionarios más grandes deben corresponder a las identificadas en el paso 6.
 
 ---
 
-### Paso 2 — Optimización en Power Query: Tipos de Datos y Eliminación de Columnas
+### Paso 2 — Optimización en Power Query: tipos de datos y eliminación de columnas
 
 **Objetivo:** Reducir el tamaño del modelo eliminando columnas no utilizadas y convirtiendo tipos de datos subóptimos directamente en la capa de ingesta (Power Query), aplicando las transformaciones antes de que VertiPaq materialice los datos.
-
-#### Instrucciones
 
 1. En Power BI Desktop, abre el **Editor de Power Query**: menú **Inicio → Transformar datos**.
 
 2. **Eliminar columnas no utilizadas en visualizaciones:**
 
-   Selecciona la tabla `FactVentas`. Identifica las siguientes columnas que no aparecen en ningún visual ni son usadas por medidas (confirmado en el diagnóstico del Paso 1):
+   Selecciona la tabla `FactVentas`. Identifica las siguientes columnas que no aparecen en ningún visual ni son usadas por medidas:
    - `OrderTimeStamp` (DateTime completo — la hora no se usa)
    - `ShipAddressFull` (texto concatenado de alta cardinalidad)
    - `InternalNotes` (texto libre, cardinalidad muy alta)
@@ -251,7 +293,7 @@ Confirma que los resultados coinciden con lo observado en VertiPaq Analyzer. Las
    )
    ```
 
-   c. Confirma que la relación `FactVentas[CanalKey] → DimCanal[CanalKey]` existe en el modelo (la verificarás en el Paso 3).
+
 
 6. **Verificar tipos de datos en todas las tablas de dimensiones:**
 
@@ -270,100 +312,57 @@ Confirma que los resultados coinciden con lo observado en VertiPaq Analyzer. Las
 
 7. Haz clic en **Cerrar y aplicar**. Espera a que el modelo se recargue.
 
-8. Toma captura del panel de campos mostrando las tablas y columnas resultantes:
-   ```
-   C:\LabPowerBI\Lab01\Capturas\02_PowerQuery_Post_Optimizacion.png
-   ```
+   ![Cambios en Power Query](../images/Capitulo1/9.png)
+   ![Modelo después de aplicar cambios](../images/Capitulo1/10.png)
 
-#### Resultado Esperado
+### Resultado Esperado
 
 - La tabla `FactVentas` no contiene las columnas `OrderTimeStamp`, `ShipAddressFull`, `InternalNotes`, `ETLLoadID` ni `CanalVenta` (texto).
 - `OrderDate` y `ShipDate` son de tipo `date`, no `datetime`.
 - `UnitPrice` tiene máximo 2 decimales.
 - Todas las columnas `*Key` e `*ID` son de tipo entero en todas las tablas.
-- El modelo recarga sin errores.
-
-#### Verificación
-
-En DAX Studio, ejecuta la siguiente consulta para confirmar que las columnas eliminadas ya no existen:
-
-```DAX
-SELECT
-    [TABLE_NAME],
-    [COLUMN_ID],
-    [DATA_TYPE]
-FROM $SYSTEM.DISCOVER_STORAGE_TABLE_COLUMNS
-WHERE [TABLE_NAME] = 'FactVentas'
-  AND [COLUMN_TYPE] = 'BASIC_DATA'
-ORDER BY [TABLE_NAME], [COLUMN_ID]
-```
-
-Confirma que `ShipAddressFull`, `InternalNotes`, `ETLLoadID` y `CanalVenta` **no aparecen** en los resultados.
 
 ---
 
-### Paso 3 — Optimización del Modelo: Relaciones, Auto Date/Time y DimFecha
+### Paso 3 — Optimización del modelo: relaciones, Auto date/time y DimFecha
 
 **Objetivo:** Eliminar relaciones innecesarias o ineficientes, desactivar *Auto date/time* para suprimir tablas de fecha ocultas redundantes, y validar que la `DimFecha` única está correctamente configurada.
 
-#### Instrucciones
-
 1. **Desactivar Auto date/time en el archivo actual:**
 
-   En Power BI Desktop: **Archivo → Opciones y configuración → Opciones → pestaña "Archivo actual" → Carga de datos** → desmarcar **"Auto date/time"**.
+   En Power BI Desktop: **Archivo → Opciones y configuración → Opciones → pestaña "Archivo actual" → Carga de datos** → desmarcar **"Fecha y hora automáticas"**.
 
-   > ⚠️ **Importante:** Esto debe hacerse tanto en la configuración *global* como en la del *archivo actual*. La configuración global afecta nuevos archivos; la del archivo actual afecta el modelo abierto.
+   Haz clic en **Aceptar** y espera a que el modelo se actualice. Esta acción puede tardar unos segundos mientras Power BI elimina las tablas de fecha generadas automáticamente.
 
-   Haz clic en **Aceptar** y espera a que el modelo se actualice.
+      ![Desactivar Auto date/time en Power BI Desktop](../images/Capitulo1/11.png)
 
 2. **Verificar eliminación de tablas de fecha ocultas:**
 
-   En DAX Studio, ejecuta:
+   En DAX Studio, ejecuta la siguiente consulta DMV:
 
    ```DAX
    SELECT
-       [TABLE_NAME],
-       [TABLE_IS_PRIVATE]
+      [Name],
+      [IsPrivate]
    FROM $SYSTEM.TMSCHEMA_TABLES
-   ORDER BY [TABLE_IS_PRIVATE] DESC, [TABLE_NAME]
-   ```
 
-   Las tablas con `TABLE_IS_PRIVATE = TRUE` son las tablas auto date/time. Después de desactivar la opción, al recargar el modelo, estas tablas deben desaparecer o reducirse significativamente.
+   ```
+   
+   Revisa los resultados, localiza la columna "IsPrivate" si hay un valor "TRUE" son las tablas ocultas de fecha generadas por Auto date/time. Con la opción desactivada, estas tablas deben desaparecer o reducirse significativamente. Si hay valores "False", son tablas visibles del modelo, como `DimFecha`, `DimProducto`, etc.
+   
+      ![Consulta DMV para tablas en DAX Studio](../images/Capitulo1/12.png)
 
 3. **Revisar y corregir relaciones Many-to-Many evitables:**
 
-   En la vista de **Modelo** de Power BI Desktop, identifica relaciones marcadas con el símbolo `*` en ambos extremos (Many-to-Many). El modelo de práctica tiene una relación M:M entre `FactVentas` y `DimPromocion`.
+   En la vista de **Modelo** de Power BI Desktop, identifica relaciones marcadas con el símbolo `*` en ambos extremos (Many-to-Many). El modelo semántico de práctica tiene una relación M:M entre `FactVentas` y `DimPromocion` basada en la columna `PromocionCodigo` (texto). Esta relación es ineficiente y debe ser corregida a una relación Many-to-One con clave entera.
 
    Esta relación existe porque `FactVentas` tiene una columna `PromocionCodigo` (texto) que no es única en `DimPromocion`. Solución:
 
-   a. En `DimPromocion`, verifica que existe `PromocionKey` (entero, único).
+   a. Eliminar relación M:M actual entre `FactVentas` y `DimPromocion`.
 
-   b. En Power Query, en `FactVentas`, verifica que existe `PromocionKey` (entero). Si no existe, crea una combinación (merge) con `DimPromocion` para obtener la clave:
+   b. Crea una nueva relación: `FactVentas[PromocionKey] → DimPromocion[PromocionKey]` (Many-to-One, dirección de filtro única: de dimensión a hecho).
 
-   ```m
-   #"Merge Promocion" = Table.NestedJoin(
-       #"Paso anterior",
-       {"PromocionCodigo"},
-       DimPromocion,
-       {"PromocionCodigo"},
-       "DimPromocion",
-       JoinKind.LeftOuter
-   ),
-   #"PromocionKey expandido" = Table.ExpandTableColumn(
-       #"Merge Promocion",
-       "DimPromocion",
-       {"PromocionKey"},
-       {"PromocionKey"}
-   ),
-   #"PromocionCodigo eliminado" = Table.RemoveColumns(
-       #"PromocionKey expandido",
-       {"PromocionCodigo"}
-   )
-   ```
-
-   c. Elimina la relación M:M existente en la vista de Modelo.
-
-   d. Crea una nueva relación: `FactVentas[PromocionKey] → DimPromocion[PromocionKey]` (Many-to-One, dirección de filtro única: de dimensión a hecho).
+   ![Relación Many-to-Many en el modelo](../images/Capitulo1/13.png)
 
 4. **Verificar relaciones bidireccionales innecesarias:**
 
@@ -371,7 +370,9 @@ Confirma que `ShipAddressFull`, `InternalNotes`, `ETLLoadID` y `CanalVenta` **no
    - Si la bidireccionalidad es necesaria para la lógica de negocio (p. ej., rol de seguridad), consérvala documentada.
    - Si fue configurada "por defecto" sin análisis, cámbiala a **Dirección única** (de dimensión a hecho).
 
-   En el modelo de práctica, la relación `DimGeografia ↔ DimCliente` es bidireccional sin justificación. Cámbiala a dirección única: `DimGeografia → DimCliente`.
+   En el modelo semántico de práctica, la relación `DimGeografia ↔ DimCliente` es bidireccional sin justificación. Cámbiala a dirección única: `DimGeografia → DimCliente`.
+
+
 
 5. **Validar DimFecha:**
 
@@ -387,44 +388,33 @@ Confirma que `ShipAddressFull`, `InternalNotes`, `ETLLoadID` y `CanalVenta` **no
 
    > ✅ **Buena práctica:** Evita columnas concatenadas como `"2024-Q1"` o `"Ene 2024"` como texto. Usa columnas separadas y define jerarquías en el modelo.
 
-   Verifica que `FactVentas[OrderDate]` tiene una relación activa con `DimFecha[Date]` (o `DimFecha[DateKey]` si usas clave entera).
+   Verifica que `FactVentas[OrderDate]` tiene una relación activa con `DimFecha[Date]`. Si `FactVentas[OrderDate]` no está relacionado con `DimFecha`, crea la relación: `FactVentas[OrderDate] → DimFecha[Date]` (Many-to-One, dirección de filtro única).
 
-6. Guarda el archivo: **Ctrl + S**.
+    ![Relación entre FactVentas y DimFecha](../images/Capitulo1/14.png)
 
-#### Resultado Esperado
+6. Eliminar relación entre `FactVentas[GeographyKey]` y `DimGeografia[GeographyKey]` si existe, ya que el análisis geográfico se realizará a través de `DimCliente` y no directamente desde el hecho.
+
+   ![Relación innecesaria entre FactVentas y DimGeografia](../images/Capitulo1/15.png)
+
+7. Guarda el archivo: **Ctrl + S**.
+
+### Resultado Esperado
 
 - *Auto date/time* desactivado; las tablas privadas de fecha ya no aparecen en la consulta DMV.
 - La relación `FactVentas ↔ DimPromocion` es Many-to-One con dirección de filtro única.
 - La relación `DimGeografia ↔ DimCliente` tiene dirección única.
 - `DimFecha` está correctamente relacionada con `FactVentas[OrderDate]`.
-
-#### Verificación
-
-En la vista de Modelo, confirma visualmente:
-- Ninguna relación muestra `*` en ambos extremos.
-- Las flechas de filtro apuntan desde dimensiones hacia hechos (excepto casos documentados).
-
-En DAX Studio, verifica que no quedan tablas privadas:
-
-```DAX
-SELECT [TABLE_NAME], [TABLE_IS_PRIVATE]
-FROM $SYSTEM.TMSCHEMA_TABLES
-WHERE [TABLE_IS_PRIVATE] = TRUE
-```
-
-El resultado debe estar vacío o contener únicamente tablas privadas justificadas.
+- Se eliminan relaciones innecesarias entre `FactVentas` y `DimGeografia`.
 
 ---
 
-### Paso 4 — Refactorización DAX: Eliminar Columnas Calculadas y Consolidar Medidas
+### Paso 4 — Refactorización DAX: eliminar columnas calculadas y consolidar medidas
 
 **Objetivo:** Convertir columnas calculadas materializadas en medidas calculadas a demanda, y consolidar medidas redundantes en un conjunto de medidas base reutilizables con convenciones de nomenclatura claras.
 
-#### Instrucciones
-
 1. **Identificar y eliminar columnas calculadas innecesarias:**
 
-   En la vista de **Datos** de Power BI Desktop, navega a la tabla `FactVentas`. Identifica las siguientes columnas calculadas (icono de función `fx`):
+   En la vista de **Tabla** de Power BI Desktop, navega a la tabla `FactVentas`. Identifica las siguientes columnas calculadas (icono de función `fx`):
    - `Margen` = `FactVentas[ImporteVenta] - FactVentas[ImporteCosto]`
    - `Margen%` = `DIVIDE(FactVentas[Margen], FactVentas[ImporteVenta])`
    - `VentasConIVA` = `FactVentas[ImporteVenta] * 1.21`
@@ -437,13 +427,15 @@ El resultado debe estar vacío o contener únicamente tablas privadas justificad
 
    Crea una tabla vacía dedicada a medidas (buena práctica de organización):
 
-   En Power BI Desktop: **Modelado → Nueva tabla**:
+   En Power BI Desktop: **Vista de Tabla → Herramientas de tablas → Nueva tabla**:
 
    ```DAX
    _Medidas = DATATABLE("Placeholder", STRING, {{""}})
    ```
 
    Oculta la columna `Placeholder`: clic derecho sobre la columna → **Ocultar en vista de informe**.
+
+   ![Crear tabla de medidas en Power BI Desktop](../images/Capitulo1/16.png)
 
 3. **Crear medidas base reutilizables:**
 
@@ -487,26 +479,27 @@ El resultado debe estar vacío o contener únicamente tablas privadas justificad
    Ticket Promedio =
    DIVIDE([Ventas], [Unidades], 0)
    ```
+   ![Crear medidas en Power BI Desktop](../images/Capitulo1/17.png)
 
 5. **Identificar y eliminar medidas duplicadas:**
 
-   Basándote en la lista obtenida en el Paso 1 (consulta DMV), localiza las medidas redundantes. El modelo de práctica contiene:
-
-   | Medida redundante a eliminar | Medida base equivalente |
-   |------------------------------|-------------------------|
-   | `Ventas_Total`               | `Ventas`                |
-   | `Total Ventas`               | `Ventas`                |
-   | `SumaVentas`                 | `Ventas`                |
-   | `Margen Bruto`               | `Margen`                |
-   | `PorcentajeMargen`           | `Margen %`              |
+   Basándote en la lista obtenida en el Paso 1 (Ir a Bitacora) localiza las medidas redundantes. Estas medidas calculan lo mismo que las medidas base o derivadas que acabas de crear, pero con nombres diferentes o expresiones equivalentes. Por ejemplo:
+   - `Ventas_Total` (equivalente a `Ventas`)
+   - `Total Ventas` (equivalente a `Ventas`)
+   - `SumaVentas` (equivalente a `Ventas`)
+   - `Margen Bruto` (equivalente a `Margen`)
+   - `PorcentajeMargen` (equivalente a `Margen %`)
+   - `Costo_Total` (equivalente a `Costo`)
 
    Para cada medida redundante: selecciona la medida en el panel de campos → clic derecho → **Eliminar del modelo**.
 
-   > ⚠️ **Antes de eliminar:** Verifica en la vista de **Informe** que ningún visual usa la medida redundante. Si algún visual la usa, actualiza el visual para usar la medida base equivalente antes de eliminar.
+   > **Antes de eliminar:** Verifica en la vista de **Informe** que ningún visual usa la medida redundante. Si algún visual la usa, actualiza el visual para usar la medida base equivalente antes de eliminar.
+
+   ![Eliminar medidas redundantes en Power BI Desktop](../images/Capitulo1/18.png)
 
 6. **Organizar medidas en carpetas de visualización:**
 
-   Selecciona cada medida en el panel de campos. En el panel de **Propiedades** (panel derecho), asigna la carpeta de visualización:
+   Selecciona cada medida en el panel de Datos. En la vista **Modelo**, en el panel de **Propiedades** (panel derecho), asigna la carpeta de visualización:
 
    | Medida           | Carpeta de visualización |
    |------------------|--------------------------|
@@ -518,6 +511,8 @@ El resultado debe estar vacío o contener únicamente tablas privadas justificad
    | `Ventas Con IVA` | `Ventas\Derivadas`       |
    | `Ticket Promedio`| `Ventas\Derivadas`       |
 
+   ![Organizar medidas en carpetas de visualización](../images/Capitulo1/19.png)
+
 7. **Ocultar columnas técnicas:**
 
    En la vista de Modelo, oculta las siguientes columnas (clic derecho → **Ocultar en vista de informe**):
@@ -527,38 +522,18 @@ El resultado debe estar vacío o contener únicamente tablas privadas justificad
 
 8. Guarda el archivo: **Ctrl + S**.
 
-#### Resultado Esperado
+### Resultado Esperado
 
 - Las columnas calculadas `Margen`, `Margen%` y `VentasConIVA` ya no existen en `FactVentas`.
 - Existe la tabla `_Medidas` con al menos 7 medidas organizadas en carpetas.
 - Las medidas redundantes (`Ventas_Total`, `Total Ventas`, `SumaVentas`, `Margen Bruto`, `PorcentajeMargen`) han sido eliminadas.
 - Las columnas técnicas están ocultas en la vista de informe.
 
-#### Verificación
-
-Ejecuta en DAX Studio para confirmar el conteo de medidas actual:
-
-```DAX
-SELECT
-    COUNT([MEASURE_NAME]) AS [Total_Medidas],
-    [MEASUREGROUP_NAME]   AS [Tabla]
-FROM $SYSTEM.MDSCHEMA_MEASURES
-WHERE [MEASURE_IS_VISIBLE] = TRUE
-GROUP BY [MEASUREGROUP_NAME]
-ORDER BY [Tabla]
-```
-
-Verifica que el total de medidas es menor que el inicial (medidas redundantes eliminadas) y que `_Medidas` aparece como tabla contenedora principal.
-
-Adicionalmente, crea un visual de tabla en el informe con `DimProducto[ProductName]` y las medidas `[Ventas]`, `[Margen]`, `[Margen %]`. Confirma que los valores son consistentes con los reportes originales (compara con capturas del estado inicial).
-
 ---
 
-### Paso 5 — Benchmarking Comparativo: Antes vs. Después
+### Paso 5 — Benchmarking comparativo: antes vs. después
 
 **Objetivo:** Cuantificar el impacto total de las optimizaciones aplicadas exportando un nuevo VPAX, comparando métricas de tamaño y ejecutando consultas de benchmark para medir la mejora en tiempo de respuesta.
-
-#### Instrucciones
 
 1. **Exportar VPAX del modelo optimizado:**
 
@@ -569,22 +544,23 @@ Adicionalmente, crea un visual de tabla en el informe con `DimProducto[ProductNa
 
 2. **Comparar métricas de tamaño:**
 
-   Abre ambos archivos VPAX en VertiPaq Analyzer y completa la tabla comparativa en tu bitácora:
+   En la bitacora complementa la tabla comparativa con los valores del modelo optimizado (después):
 
-   | Métrica                           | Antes        | Después      | Reducción (%) |
+   | Métrica                           | Valor Inicial        | Valor Después      | Reducción (%) |
    |-----------------------------------|--------------|--------------|---------------|
-   | Tamaño total del modelo (MB)      | ___________  | ___________  | ___________   |
-   | Número de columnas                | ___________  | ___________  | ___________   |
-   | Número de columnas calculadas     | ___________  | ___________  | ___________   |
-   | Número de medidas                 | ___________  | ___________  | ___________   |
-   | Tamaño FactVentas (MB)            | ___________  | ___________  | ___________   |
-   | Tablas privadas (auto date/time)  | ___________  | ___________  | ___________   |
+   | Tamaño total del modelo (MiB)      | ___________  | ___________  | ___________   |
+   | Número de tablas                   | ___________  | ___________  | ___________   |
+   | Número de columnas total     | ___________  | ___________  | ___________   |
+   | Número de Columnas Calculadas                | ___________  | ___________  | ___________   |
+   
 
-   > 🎯 **Meta:** Reducción de tamaño total ≥ 30 %. Si no se alcanza, revisa si quedan columnas calculadas o si *Auto date/time* fue desactivado correctamente en el archivo actual.
+   > **Meta:** Reducción de tamaño total ≥ 30 %. Si no se alcanza, revisa si quedan columnas calculadas o si *Auto date/time* fue desactivado correctamente en el archivo actual.
+
+   ![Comparativa de métricas en VertiPaq Analyzer](../images/Capitulo1/20.png)
 
 3. **Ejecutar consultas de benchmark:**
 
-   En DAX Studio, ejecuta las siguientes consultas de benchmark. Para cada una, usa **Query → Run** y registra el tiempo en **Server Timings** (habilita con **Home → Server Timings**).
+   En DAX Studio, ejecuta las siguientes consultas de benchmark. Para cada una, usa **Query → Run** y registra el tiempo de **Server Timings** en la bitácora (habilita con **Home → Server Timings**).
 
    **Consulta de benchmark 1 — Ventas por categoría y año:**
    ```DAX
@@ -596,8 +572,10 @@ Adicionalmente, crea un visual de tabla en el informe con `DimProducto[ProductNa
        "Margen",    [Margen],
        "Margen %",  [Margen %]
    )
-   ORDER BY DimFecha[Year], DimProducto[Category]
+   
    ```
+
+   Revisa el panel **Server Timings** y registra el tiempo total (Total ms) en la bitácora.
 
    **Consulta de benchmark 2 — Top 10 clientes por ventas:**
    ```DAX
@@ -612,22 +590,27 @@ Adicionalmente, crea un visual de tabla en el informe con `DimProducto[ProductNa
    )
    ```
 
+   Revisa el panel **Server Timings** y registra el tiempo total (Total ms) en la bitácora.
+
    **Consulta de benchmark 3 — Ventas mensuales del último año:**
+
    ```DAX
    EVALUATE
-   CALCULATETABLE(
-       SUMMARIZECOLUMNS(
-           DimFecha[Year],
-           DimFecha[MonthNumber],
-           DimFecha[MonthName],
-           "Ventas",   [Ventas],
-           "Unidades", [Unidades]
-       ),
-       DimFecha[Year] = YEAR(TODAY()) - 1
-   )
-   ORDER BY DimFecha[MonthNumber]
+      CALCULATETABLE(
+         SUMMARIZECOLUMNS(
+            DimFecha[Year],
+            DimFecha[MonthNumber],
+            DimFecha[MonthName],
+            "Ventas", [Ventas],
+            "Unidades", [Unidades]
+         ),
+         DimFecha[Year] = YEAR(TODAY()) - 1
+      )
+   
    ```
 
+   Revisa el panel **Server Timings** y registra el tiempo total (Total ms) en la bitácora.
+   
    Registra los tiempos en tu bitácora:
 
    | Consulta       | Tiempo ANTES (ms) | Tiempo DESPUÉS (ms) | Mejora (%) |
@@ -636,39 +619,16 @@ Adicionalmente, crea un visual de tabla en el informe con `DimProducto[ProductNa
    | Benchmark 2    | ___________       | ___________         | ___________|
    | Benchmark 3    | ___________       | ___________         | ___________|
 
-   > **Nota:** Si no tienes los tiempos "ANTES" porque no los mediste en el Paso 1, usa el archivo `Lab01_VentasRetail_DeudaTecnica.pbix` original (sin modificar) en una segunda instancia de Power BI Desktop para obtener los tiempos de referencia.
+   ![Comparativa de tiempos en Server Timings](../images/Capitulo1/21.png)
+  
 
-4. **Guardar el archivo final optimizado:**
-
-   Guarda el archivo con un nombre que distinga la versión optimizada:
-   ```
-   C:\LabPowerBI\Lab01\Lab01_VentasRetail_Optimizado.pbix
-   ```
-
-5. Toma captura final de VertiPaq Analyzer (pestaña Summary del modelo optimizado):
-   ```
-   C:\LabPowerBI\Lab01\Capturas\05_VertiPaq_DESPUES_Summary.png
-   ```
-
-#### Resultado Esperado
+### Resultado Esperado
 
 - Archivo `Lab01_DESPUES.vpax` guardado.
 - Tabla comparativa completa en la bitácora con reducción ≥ 30 % en tamaño total.
 - Las tres consultas de benchmark muestran tiempos iguales o menores al estado inicial.
-- Archivo `Lab01_VentasRetail_Optimizado.pbix` guardado en la carpeta de trabajo.
-
-#### Verificación
-
-En VertiPaq Analyzer, pestaña **Columns** del archivo DESPUES, confirma:
-- Ninguna columna de tipo `Calculated` con tamaño > 1 MB (las columnas calculadas eliminadas no deben aparecer).
-- La columna `OrderDate` muestra tipo `Date` (no `DateTime`).
-- Las columnas `ShipAddressFull`, `InternalNotes`, `ETLLoadID` no existen.
 
 ---
-
-## 7. Validación y Pruebas
-
-Al completar todos los pasos, realiza las siguientes verificaciones finales para confirmar que el laboratorio fue completado exitosamente:
 
 ### Lista de verificación de completitud
 
@@ -684,87 +644,17 @@ Al completar todos los pasos, realiza las siguientes verificaciones finales para
 | 8 | Relación `FactVentas ↔ DimPromocion` es Many-to-One (no M:M)                | ☐      |
 | 9 | Relación `DimGeografia ↔ DimCliente` tiene dirección de filtro única         | ☐      |
 | 10| Consultas de benchmark ejecutadas con tiempos registrados                    | ☐      |
-| 11| Archivo `Lab01_VentasRetail_Optimizado.pbix` guardado                        | ☐      |
-
-### Prueba de integridad de datos
-
-Ejecuta en DAX Studio para confirmar que las medidas base producen resultados correctos:
-
-```DAX
-EVALUATE
-ROW(
-    "Total Ventas",    [Ventas],
-    "Total Costo",     [Costo],
-    "Total Margen",    [Margen],
-    "Margen Pct",      [Margen %],
-    "Total Unidades",  [Unidades]
-)
-```
-
-Compara los totales con los valores del modelo original (antes de optimizar). Los totales de `Ventas`, `Costo` y `Unidades` deben ser **idénticos**. Si difieren, revisa que no se hayan eliminado columnas de datos fuente por error en el Paso 2.
 
 ---
 
-## 8. Solución de Problemas
+## Cierre del laboratorio
 
-### Problema 1: El modelo no reduce tamaño después de desactivar Auto date/time
+Antes de cerrar, conserva los siguientes archivos: los necesitarás como punto de partida para el **Lab 02**.
 
-**Síntoma:** Después de desactivar *Auto date/time* y recargar el modelo, VertiPaq Analyzer sigue mostrando tablas privadas y el tamaño del modelo no disminuye significativamente.
+- `C:\LabPowerBI\Lab01\Lab01_VentasRetail_DeudaTecnica.pbix` ← entrada del Lab 02
+- `C:\LabPowerBI\Lab01\VPAX\Lab01_ANTES.vpax`
+- `C:\LabPowerBI\Lab01\VPAX\Lab01_DESPUES.vpax`
 
-**Causa:** La opción *Auto date/time* fue desactivada en la configuración **global** (nuevos archivos) pero no en la configuración del **archivo actual**. Ambas configuraciones son independientes y deben desactivarse por separado.
-
-**Solución:**
-1. En Power BI Desktop, ve a **Archivo → Opciones y configuración → Opciones**.
-2. En el panel izquierdo, bajo la sección **ARCHIVO ACTUAL** (no Global), selecciona **Carga de datos**.
-3. Desmarca **"Auto date/time"** en esta sección específica del archivo actual.
-4. Haz clic en **Aceptar**.
-5. Cierra y vuelve a abrir el archivo PBIX (o usa **Inicio → Actualizar**).
-6. Reconecta DAX Studio y vuelve a ejecutar la consulta DMV de tablas privadas para confirmar la eliminación.
-
----
-
-### Problema 2: Los visuals del informe muestran error después de eliminar medidas redundantes
-
-**Síntoma:** Al eliminar las medidas redundantes (`Ventas_Total`, `Total Ventas`, etc.), algunos visuals del informe muestran el mensaje *"No se puede mostrar el objeto visual"* o campos marcados con un signo de advertencia amarillo.
-
-**Causa:** Uno o más visuals del informe referenciaban directamente las medidas eliminadas. Al eliminar la medida sin actualizar primero el visual, la referencia queda rota.
-
-**Solución:**
-1. Antes de eliminar cualquier medida redundante, navega a cada página del informe y revisa el panel de **Campos** de cada visual.
-2. Si un visual usa `Ventas_Total`, reemplaza ese campo por la medida base `Ventas` arrastrando la nueva medida al visual y eliminando la referencia antigua.
-3. Una vez confirmado que ningún visual usa la medida redundante, procede a eliminarla.
-4. Si ya eliminaste la medida y el visual está roto: ve a la vista de **Informe**, selecciona el visual afectado, en el panel de Campos verás el campo marcado con ⚠️ — elimina ese campo del visual y agrega la medida base equivalente.
-5. Para prevenir este problema en el futuro, usa la función **Analizar en Excel** o la vista de **Árbol de dependencias** (disponible en Tabular Editor) para identificar todas las dependencias de una medida antes de eliminarla.
-
----
-
-## 9. Limpieza del Entorno
-
-Una vez completado el laboratorio y validados todos los puntos de la lista de verificación:
-
-1. **Cerrar conexiones de DAX Studio:**
-   En DAX Studio, cierra la conexión activa: **File → Disconnect** o cierra la ventana de DAX Studio.
-
-2. **Conservar archivos de trabajo:**
-   Los siguientes archivos son necesarios para el **Lab 02** (Grupos de Cálculo):
-   - `C:\LabPowerBI\Lab01\Lab01_VentasRetail_Optimizado.pbix` ← **Este archivo es la entrada del Lab 02**
-   - `C:\LabPowerBI\Lab01\VPAX\Lab01_ANTES.vpax`
-   - `C:\LabPowerBI\Lab01\VPAX\Lab01_DESPUES.vpax`
-
-3. **Archivar el modelo con deuda técnica original:**
-   ```
-   copy C:\LabPowerBI\Lab01\Lab01_VentasRetail_DeudaTecnica.pbix
-        C:\LabPowerBI\Lab01\Archivados\Lab01_VentasRetail_DeudaTecnica_ORIGINAL.pbix
-   ```
-
-4. **Cerrar Power BI Desktop** si no continuarás con el siguiente laboratorio en esta sesión.
-
-5. **Opcional — Limpiar archivos temporales de Power BI:**
-   Power BI Desktop crea archivos de caché en `%LOCALAPPDATA%\Microsoft\Power BI Desktop\`. Si el disco está bajo en espacio, puedes limpiar la subcarpeta `TempSaves`, pero **no elimines** la carpeta `AnalysisServicesWorkspaces` mientras Power BI Desktop esté abierto.
-
----
-
-## 10. Resumen
 
 ### Lo que aprendiste en este laboratorio
 
@@ -780,9 +670,7 @@ En este laboratorio aplicaste un proceso completo de diagnóstico y remediación
 
 5. **Benchmarking comparativo:** Cuantificaste el impacto de cada optimización con métricas objetivas (tamaño VPAX y tiempos de consulta), estableciendo la práctica de medir antes y después como estándar de trabajo.
 
-### Conexión con los próximos laboratorios
-
-El archivo `Lab01_VentasRetail_Optimizado.pbix` generado en este laboratorio es la base del **Lab 02**, donde implementarás **Grupos de Cálculo** sobre las medidas base creadas aquí para centralizar lógica de inteligencia de tiempo y comparación de períodos, eliminando la necesidad de crear decenas de medidas derivadas adicionales.
+---
 
 ### Recursos de referencia
 
@@ -796,9 +684,3 @@ El archivo `Lab01_VentasRetail_Optimizado.pbix` generado en este laboratorio es 
 | VertiPaq Analyzer (SQLBI) | https://www.sqlbi.com/tools/vertipaq-analyzer/ |
 | Optimizing DAX (SQLBI) | https://www.sqlbi.com/articles/optimizing-dax/ |
 
----
-
-> **Nota para el instructor:** Si algún participante no alcanza la reducción del 30 % en tamaño, verifique primero si *Auto date/time* fue desactivado correctamente en el **archivo actual** (no solo en global). Esta es la causa más frecuente de reducción insuficiente. En segundo lugar, verifique que las columnas calculadas fueron eliminadas del modelo y no solo ocultadas.
-
----
-LAB_END---

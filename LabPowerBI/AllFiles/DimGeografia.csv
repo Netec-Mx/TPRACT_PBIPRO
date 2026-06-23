@@ -1,0 +1,35 @@
+GeographyKey,Country,Region,City
+1,Colombia,Occidente,Bogota
+2,Colombia,Oriente,Medellin
+3,Colombia,Sur,Cali
+4,Colombia,Oriente,Barranquilla
+5,Colombia,Norte,Bucaramanga
+6,Colombia,Centro,Cartagena
+7,Colombia,Sur,Pereira
+8,Colombia,Occidente,Manizales
+9,Mexico,Oriente,Ciudad de Mexico
+10,Mexico,Centro,Guadalajara
+11,Mexico,Oriente,Monterrey
+12,Mexico,Norte,Puebla
+13,Mexico,Centro,Queretaro
+14,Mexico,Oriente,Merida
+15,Mexico,Occidente,Tijuana
+16,Mexico,Oriente,Leon
+17,Chile,Oriente,Santiago
+18,Chile,Oriente,Valparaiso
+19,Chile,Centro,Concepcion
+20,Chile,Sur,Antofagasta
+21,Chile,Occidente,Temuco
+22,Chile,Centro,La Serena
+23,Peru,Sur,Lima
+24,Peru,Norte,Arequipa
+25,Peru,Occidente,Trujillo
+26,Peru,Oriente,Cusco
+27,Peru,Sur,Piura
+28,Peru,Oriente,Chiclayo
+29,Argentina,Oriente,Buenos Aires
+30,Argentina,Occidente,Cordoba
+31,Argentina,Occidente,Rosario
+32,Argentina,Sur,Mendoza
+33,Argentina,Norte,La Plata
+34,Argentina,Norte,Salta
