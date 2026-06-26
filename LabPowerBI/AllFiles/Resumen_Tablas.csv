@@ -1,0 +1,10 @@
+Tabla,Filas,Objetivo
+FactVentas,60000,Tabla de hechos con columnas de deuda tecnica
+DimProducto,80,Dimension producto
+DimCliente,2500,Dimension cliente
+DimGeografia,34,Dimension geografica
+DimCanal,5,Dimension canal
+DimPromocion,24,Dimension promocion con codigos duplicados
+DimFecha,1096,Dimension calendario
+FactPresupuesto,36,Presupuesto mensual para escenarios de analisis
+FactForecast,36,Forecast mensual para escenarios de analisis

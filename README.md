@@ -1,6 +1,5 @@
 <img src="images/neteclogo (2).png" alt="logo" width="300"/>
 
-
 # Ingeniería de Datos en Power BI Pro
 
 Entrenamiento técnico avanzado enfocado en arquitectura semántica, optimización DAX, performance, DevOps e IA aplicada para entornos Power BI Enterprise.
@@ -17,13 +16,13 @@ Cada uno de estos laboratorios está diseñado para ofrecerte una experiencia pr
 
 ### [Practica 1. Optimización de la Capa Semántica: Reducción de Deuda Técnica y Memoria](Capitulo01/README.md#optimización-de-la-capa-semántica-reducción-de-deuda-técnica-y-memoria)
 
-  - Descripción: Diseñar modelos optimizados para memoria y velocidad mediante la comprensión profunda del motor de almacenamiento.
-  - Duración estimada: 90 min
+- Descripción: Diseñar modelos optimizados para memoria y velocidad mediante la comprensión profunda del motor de almacenamiento.
+- Duración estimada: 90 min
 
 ### [Practica 2. Escalabilidad de Lógica de Negocio: Implementación de Grupos de Cálculo](Capitulo02/README.md#escalabilidad-de-lógica-de-negocio-implementación-de-grupos-de-cálculo)
 
-  - Descripción: Profesionalizar la lógica analítica para reducir la redundancia de código y facilitar el mantenimiento masivo de métricas.
-  - Duración estimada: 120 min
+- Descripción: Profesionalizar la lógica analítica para reducir la redundancia de código y facilitar el mantenimiento masivo de métricas.
+- Duración estimada: 120 min
 
 ### Capítulo 3
 
@@ -39,20 +38,13 @@ Cada uno de estos laboratorios está diseñado para ofrecerte una experiencia pr
 
 ### [Practica 5. Productividad Asistida por IA: Documentación Técnica y Generación de Insights](Capitulo05/README.md#productividad-asistida-por-ia-documentación-técnica-y-generación-de-insights)
 
-  - Descripción: Utilizar la IA generativa para acelerar los tiempos de desarrollo y asegurar la documentación del conocimiento técnico.
-  - Duración estimada: 75 min
-
+- Descripción: Utilizar la IA generativa para acelerar los tiempos de desarrollo y asegurar la documentación del conocimiento técnico.
+- Duración estimada: 75 min
 
 ## 📬 **Contacto y más información**
 
-
-
 Si tienes alguna pregunta o necesitas más detalles, no dudes en [contactarnos](mailto:soporte@netec.com). También puedes encontrar más recursos en nuestra [página](https://netec.com).
 
-
-
 ---
-
-
 
 ¡Gracias por visitar nuestra plataforma! No olvides revisar todos los laboratorios y comenzar tu viaje de aprendizaje hoy mismo.
